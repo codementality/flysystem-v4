@@ -13,6 +13,7 @@ Goal: 3.0 → 4.0 upgrades with minimal disruption — every *working* 3.0 confi
 
 ## 2. The preserved settings.php array (verbatim shape)
 
+### Local File System
 ```php
 $settings['flysystem']['flylocal'] = [
   'driver'          => 'local',
@@ -22,6 +23,177 @@ $settings['flysystem']['flylocal'] = [
     'root' => '/var/www/html/web/sites/default/files',
   ],
 ];
+```
+
+### S3/S3-compatible storage (s3 driver)
+
+```php
+$settings['flysystem']['media'] = [
+  'driver'          => 's3',
+  'public_url_base' => 'https://mysite.example.com',
+  'writable'        => TRUE,
+  'config'          => [
+    'bucket'              => 'my-bucket',
+    'region'              => 'us-east-1',
+    'prefix'              => '',              // Optional key prefix.
+    'endpoint'            => 'https://...',  // Required for non-AWS services.
+    'path_style_endpoint' => FALSE,          // TRUE required for MinIO.
+    'send_chunked_body'   => TRUE,           // FALSE required for MinIO.
+    'default_visibility'  => 'public',       // 'public' or 'private'.
+    'credentials'         => [               // Omit to use IAM / env vars.
+      'key'    => 'AKIAIOSFODNN7EXAMPLE',
+      'secret' => 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+    ],
+  ],
+];
+```
+
+
+
+### AWS S3 with presigned URLs and Cloudfront (aws_s3 driver)
+
+#### Public bucket with CloudFront
+
+```php
+$settings['flysystem']['media'] = [
+  'driver'          => 'aws_s3',
+  'public_url_base' => 'https://mysite.example.com',
+  'config'          => [
+    'bucket'     => 'my-public-bucket',
+    'region'     => 'us-east-1',
+    'visibility' => 'public',
+    'cloudfront' => [
+      'domain' => 'https://abc123.cloudfront.net',
+    ],
+    // No credentials — use IAM instance role in production.
+  ],
+];
+```
+
+### Private bucket with presigned URLs
+
+```php
+$settings['flysystem']['secure-media'] = [
+  'driver'          => 'aws_s3',
+  'public_url_base' => 'https://mysite.example.com',
+  'config'          => [
+    'bucket'           => 'my-private-bucket',
+    'region'           => 'us-east-1',
+    'visibility'       => 'private',
+    'presigned_expiry' => 3600,
+  ],
+];
+```
+
+### All aws_s3 config keys
+```php
+'config' => [
+  'bucket'           => 'my-bucket',      // Required.
+  'region'           => 'us-east-1',      // Required.
+  'prefix'           => '',               // Optional key prefix.
+  'visibility'       => 'public',         // 'public' or 'private'. Default 'public'.
+  'presigned_expiry' => 3600,             // Presigned URL lifetime in seconds. Default 3600.
+  'cloudfront'       => [                 // Optional. Public files only.
+    'domain' => 'https://abc123.cloudfront.net',
+  ],
+  'credentials'      => [                 // Omit in production; use IAM roles.
+    'key'    => 'AKIAIOSFODNN7EXAMPLE',
+    'secret' => 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+  ],
+],
+```
+
+### IAM policy — public bucket (minimum permissions)
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject", "s3:PutObject", "s3:DeleteObject",
+        "s3:ListBucket", "s3:GetObjectAcl", "s3:PutObjectAcl"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-bucket",
+        "arn:aws:s3:::my-bucket/*"
+      ]
+    }
+  ]
+}
+```
+
+### IAM policy — private bucket (minimum permissions)
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-private-bucket",
+        "arn:aws:s3:::my-private-bucket/*"
+      ]
+    }
+  ]
+}
+```
+
+### SFTP storage (sftp ddriver)
+
+#### Password authentication
+
+```php
+$settings['flysystem']['sftp_media'] = [
+  'driver'          => 'sftp',
+  'public_url_base' => 'https://mysite.example.com/media',  // Optional.
+  'config'          => [
+    'host'     => 'sftp.example.com',
+    'username' => 'deploy',
+    'password' => 'secret',
+    'root'     => '/var/www/uploads',
+  ],
+];
+```
+
+#### Private key authentication
+
+```php
+$settings['flysystem']['sftp_media'] = [
+  'driver'          => 'sftp',
+  'public_url_base' => 'https://mysite.example.com/media',  // Optional.
+  'config'          => [
+    'host'        => 'sftp.example.com',
+    'username'    => 'deploy',
+    'private_key' => "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",
+    'passphrase'  => 'my-key-passphrase',  // Omit if key has no passphrase.
+    'root'        => '/var/www/uploads',
+  ],
+];
+```
+
+#### All sftp config keys
+
+```php
+'config' => [
+  'host'             => 'sftp.example.com',  // Required.
+  'username'         => 'deploy',            // Required.
+  'root'             => '/var/www/uploads',  // Required. Absolute path on remote server.
+  'password'         => 'secret',            // Exactly one of password or private_key.
+  'private_key'      => '...',               // Inline PEM string.
+  'passphrase'       => null,                // Passphrase for private key, if any.
+  'port'             => 22,                  // Default 22.
+  'timeout'          => 10,                  // Default 10 seconds.
+  'max_tries'        => 4,                   // Default 4 attempts.
+  'use_agent'        => false,               // SSH agent forwarding. Default FALSE.
+  'host_fingerprint' => 'SHA256:abc123...',  // Recommended in production.
+  'visibility'       => 'public',            // 'public' (0644/0755) or 'private' (0600/0700).
+],
 ```
 
 **Rules (preserved from 3.0, load-bearing):**
