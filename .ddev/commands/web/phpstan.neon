@@ -1,0 +1,17 @@
+parameters:
+    level: 0
+    fileExtensions:
+        - php
+        - module
+        - inc
+        - install
+        - theme
+        - profile
+    excludePaths:
+        - *node_modules/*
+        - *.twig
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        # new static() is a best practice in Drupal, so we cannot fix that.
+        - "#^Unsafe usage of new static#"
+    treatPhpDocTypesAsCertain: false

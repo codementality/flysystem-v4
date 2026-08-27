@@ -1,0 +1,14 @@
+name: ddev-agents-sync
+repository: trebormc/ddev-agents-sync
+version: v1.0.58
+install_date: "2026-08-27T09:15:28-04:00"
+project_files:
+    - docker-compose.agents-sync.yaml
+    - agents-sync-build/Dockerfile.agents-sync
+    - agents-sync-build/sync.sh
+    - commands/host/agents-update
+global_files: []
+removal_actions:
+    - |
+      #ddev-description:Cleaning up Agents Sync
+      echo "Agents Sync add-on removed."

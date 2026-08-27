@@ -1,0 +1,40 @@
+#ddev-generated
+# Points the project's own web container at the emulator.
+#
+# Any AWS SDK that reads the environment — aws-sdk-php, boto3, the JS v3
+# clients, the AWS CLI — picks these up with no code change. Interpolation keeps
+# them in sync with docker-compose.floci-aws.yaml automatically.
+services:
+  web:
+    environment:
+      # AWS_ENDPOINT_URL is the modern SDK-wide override (SDK PHP >= 3.300,
+      # botocore >= 1.31, JS v3, Go v2, Java v2). Older aws-sdk-php reads
+      # AWS_ENDPOINT instead, so both are set.
+      AWS_ENDPOINT_URL: http://${FLOCI_AWS_HOSTNAME:-floci-aws}:4566
+      AWS_ENDPOINT: http://${FLOCI_AWS_HOSTNAME:-floci-aws}:4566
+      AWS_ACCESS_KEY_ID: ${FLOCI_AWS_ACCESS_KEY_ID:-test}
+      AWS_SECRET_ACCESS_KEY: ${FLOCI_AWS_SECRET_ACCESS_KEY:-test}
+      AWS_DEFAULT_REGION: ${FLOCI_AWS_REGION:-us-east-1}
+      AWS_REGION: ${FLOCI_AWS_REGION:-us-east-1}
+      # Virtual-host-style addressing would need a wildcard DNS entry per bucket;
+      # path style keeps every bucket on the one hostname.
+      AWS_USE_PATH_STYLE_ENDPOINT: ${FLOCI_AWS_S3_PATH_STYLE:-true}
+      # Terraform/OpenTofu and the CDK read their own names.
+      AWS_S3_FORCE_PATH_STYLE: ${FLOCI_AWS_S3_PATH_STYLE:-true}
+      # The two buckets the init hook creates on every start. No SDK reads
+      # these on its own — they are here so application config can say
+      # getenv('AWS_PUBLIC_BUCKET') instead of hardcoding a name the emulator
+      # also has to agree with.
+      AWS_PUBLIC_BUCKET: ${FLOCI_AWS_PUBLIC_BUCKET:-public}
+      AWS_PRIVATE_BUCKET: ${FLOCI_AWS_PRIVATE_BUCKET:-private}
+      # AWS_BUCKET is the public one, because that is the 90% case.
+      AWS_BUCKET: ${FLOCI_AWS_PUBLIC_BUCKET:-public}
+
+      # The base URL for a public object, as a BROWSER must see it — which is
+      # ddev-router, not floci-aws:4566. An <img src> built from
+      # AWS_ENDPOINT_URL names a host that only resolves inside Docker, so it
+      # renders as a broken image; this is the URL that actually loads.
+      # Objects in the public bucket are readable here with no credentials.
+      AWS_PUBLIC_BUCKET_URL: https://${DDEV_SITENAME}.${DDEV_TLD}:${FLOCI_AWS_HTTPS_PORT:-4567}/${FLOCI_AWS_PUBLIC_BUCKET:-public}
+    depends_on:
+      - floci-aws

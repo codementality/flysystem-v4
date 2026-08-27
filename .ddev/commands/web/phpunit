@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+## Description: Run PHPUnit unit tests for the flysystem module, using core's test bootstrap (matches the GitLab pipeline)
+## Usage: phpunit
+## Example: "ddev phpunit"
+
+set -e
+SIMPLETEST_DB=mysql://db:db@db/test SIMPLETEST_BASE_URL=http://web \
+  /var/www/html/vendor/bin/phpunit -c /var/www/html/web/core/phpunit.xml.dist \
+    --bootstrap /var/www/html/web/core/tests/bootstrap.php \
+    /var/www/html/web/modules/custom/flysystem/tests \
+  "$@"

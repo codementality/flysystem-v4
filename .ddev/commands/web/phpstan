@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+## Description: Run PHPStan (Drupal rules auto-loaded via phpstan-drupal) against the flysystem module
+## Usage: phpstan
+## Example: "ddev phpstan"
+
+set -e
+
+cd /var/www/html
+vendor/bin/phpstan analyse \
+  --no-progress \
+  -c .ddev/commands/web/phpstan.neon \
+  web/modules/custom/flysystem \
+  "$@"

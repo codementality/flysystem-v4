@@ -1,0 +1,38 @@
+#ddev-generated
+# Agents Sync — Lightweight container that syncs AI agent repositories
+# Only git and bash. Merges multiple repos into a shared volume.
+
+FROM ubuntu:24.04
+
+ARG USER_UID
+ARG USER_GID
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install only what we need: git, bash, envsubst (gettext-base), jq
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    ca-certificates \
+    gettext-base \
+    jq \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create user with matching UID/GID
+RUN groupadd --gid ${USER_GID} sync 2>/dev/null || true \
+    && useradd --uid ${USER_UID} --gid ${USER_GID} -m -s /bin/bash sync 2>/dev/null || true
+
+# Create directories and placeholder files for all subpaths that other containers
+# mount via Docker volume subpath. These must exist BEFORE dependent containers start,
+# because Docker cannot mount a subpath that does not exist in the volume.
+RUN mkdir -p /agents-opencode/agents /agents-opencode/rules /agents-opencode/skills \
+    /agents-claude/agents /agents-claude/rules /agents-claude/skills \
+    /tmp/agent-repos /tmp/agents-merged \
+    && touch /agents-opencode/CLAUDE.md /agents-claude/CLAUDE.md \
+    && chown -R ${USER_UID}:${USER_GID} /agents-opencode /agents-claude /tmp/agent-repos /tmp/agents-merged
+
+# Copy sync script
+COPY agents-sync-build/sync.sh /usr/local/bin/sync.sh
+RUN chmod +x /usr/local/bin/sync.sh
+
+USER sync
+WORKDIR /agents-opencode

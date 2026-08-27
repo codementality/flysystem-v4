@@ -1,0 +1,22 @@
+#ddev-generated
+# Hands Floci the host's Docker socket.
+#
+# Floci emulates Lambda, RDS, ElastiCache, MSK, OpenSearch, Neptune, DocumentDB,
+# ECS, EC2, EKS, CodeBuild and ECR by starting REAL containers rather than
+# mocking responses, and it cannot do that without the socket. Everything
+# in-process — S3, DynamoDB, SQS, SNS, IAM, KMS, Secrets Manager, SSM,
+# EventBridge, Step Functions, API Gateway, Cognito … — works without it.
+#
+# Mounting the socket gives the container control of the host's Docker daemon,
+# which is effectively root on the host. That is the same bargain LocalStack and
+# Testcontainers ask for, but it is a real one. If this project only uses the
+# in-process services, delete this file and restart:
+#
+#   rm .ddev/docker-compose.floci-aws-docker.yaml && ddev restart
+#
+# The image's entrypoint starts as root only to fix up the socket's group
+# ownership, then drops to the unprivileged `floci` user via gosu.
+services:
+  floci-aws:
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"

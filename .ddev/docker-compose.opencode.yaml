@@ -1,0 +1,106 @@
+# OpenCode AI container for DDEV
+# Provides an AI-powered development environment with access to web container
+# Install: ddev add-on get trebormc/ddev-opencode
+
+services:
+  opencode:
+    container_name: ddev-${DDEV_SITENAME}-opencode
+    hostname: opencode
+    build:
+      context: .
+      dockerfile: opencode-build/Dockerfile.opencode
+      args:
+        USER_UID: ${DDEV_UID:-1000}
+        USER_GID: ${DDEV_GID:-1000}
+    labels:
+      com.ddev.site-name: ${DDEV_SITENAME}
+      com.ddev.approot: ${DDEV_APPROOT}
+    restart: "no"
+    user: "${DDEV_UID:-1000}:${DDEV_GID:-1000}"
+    working_dir: /var/www/html
+
+    depends_on:
+      web:
+        condition: service_started
+      playwright-mcp:
+        condition: service_started
+
+    volumes:
+      - ../:/var/www/html
+      # Agents, skills, rules from agents-sync volume (directory subpath mounts)
+      - type: volume
+        source: agents-opencode-data
+        target: /home/opencode/.config/opencode/agent
+        volume:
+          subpath: agents
+        read_only: true
+      - type: volume
+        source: agents-opencode-data
+        target: /home/opencode/.config/opencode/skills
+        volume:
+          subpath: skills
+        #read_only: true
+      - type: volume
+        source: agents-opencode-data
+        target: /home/opencode/.config/opencode/rules
+        volume:
+          subpath: rules
+        read_only: true
+      # Full agents volume (for CLAUDE.md and config copy in entrypoint)
+      - agents-opencode-data:/agents-data:ro
+      # Shared credentials — only auth.json, not the full directory.
+      - ${HOST_OPENCODE_DIR}/auth.json:/home/opencode/.local/share/opencode/auth.json
+      # Host shared config dir (read-only side mount). The entrypoint builds
+      # the container-global config by DEEP-MERGING this cascade (higher wins):
+      #   1. project root opencode.json     — merged on top natively by OpenCode
+      #   2. /host-opencode-config/*.json   — user's config shared across all DDEV projects
+      #   3. /agents-data/*.json            — synced defaults from the agents repo
+      #   4. /opt/opencode-defaults/*.json  — basic defaults baked into the image
+      - ${HOST_OPENCODE_DIR}/config:/host-opencode-config:ro
+      # Plugin node_modules (persistent across restarts)
+      - ${HOST_OPENCODE_DIR}/config/node_modules:/home/opencode/.config/opencode/node_modules
+      # Multica daemon: env file from the shared ~/.ddev/multica/ directory.
+      # Same file is mounted by every Multica-aware DDEV addon.
+      # Empty MULTICA_TOKEN means disabled — entrypoint checks before acting.
+      - ${HOME}/.ddev/multica/.env.multica:/home/opencode/.env.multica:ro
+      - ${HOME}/.ddev/multica/.env.multica.example:/home/opencode/.env.multica.example:ro
+      - ddev-global-cache:/mnt/ddev-global-cache
+
+    environment:
+      - HOME=/home/opencode
+      - DDEV_SITENAME
+      - DDEV_PRIMARY_URL
+      - DDEV_HTTP_URL=http://${DDEV_SITENAME}.ddev.site
+      - DDEV_DOCROOT
+      - IS_DDEV_PROJECT=true
+      - WEB_CONTAINER=ddev-${DDEV_SITENAME}-web
+      - DB_CONTAINER=ddev-${DDEV_SITENAME}-db
+      - PLAYWRIGHT_MCP_URL=http://playwright-mcp:8931/mcp
+      - OPENCODE_DISABLE_TERMINAL_TITLE=1
+      # Self-update OpenCode on every container start (see entrypoint).
+      # Set OPENCODE_AUTO_UPDATE=false in .ddev/.env.opencode to opt out.
+      - OPENCODE_AUTO_UPDATE=${OPENCODE_AUTO_UPDATE:-true}
+      - TZ=${TZ:-UTC}
+
+    stdin_open: true
+    tty: true
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    networks:
+      - default
+      - ddev_default
+
+    command: ["sleep", "infinity"]
+
+networks:
+  ddev_default:
+    name: ddev_default
+    external: true
+
+volumes:
+  agents-opencode-data:
+    name: ddev-${DDEV_SITENAME}-agents-opencode
+  ddev-global-cache:
+    external: true

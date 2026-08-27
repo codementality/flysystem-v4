@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+## Description: Run PHPCS (Drupal, DrupalPractice standards) against the flysystem module
+## Usage: phpcs
+## Example: "ddev phpcs"
+
+set -e
+
+cd /var/www/html
+vendor/bin/phpcs \
+  --standard=Drupal,DrupalPractice \
+  --extensions=php,module,inc,install,test,profile,theme \
+  web/modules/custom/flysystem \
+  "$@"

@@ -1,0 +1,60 @@
+#ddev-generated
+# Playwright MCP Server for DDEV
+# Provides headless Chromium browser automation via MCP protocol
+# Install: ddev add-on get trebormc/ddev-playwright-mcp
+
+services:
+  playwright-mcp:
+    container_name: ddev-${DDEV_SITENAME}-playwright-mcp
+    hostname: playwright-mcp
+    image: ${PLAYWRIGHT_MCP_IMAGE:-mcr.microsoft.com/playwright/mcp:latest}
+    labels:
+      com.ddev.site-name: ${DDEV_SITENAME}
+      com.ddev.approot: ${DDEV_APPROOT}
+    restart: "no"
+    init: true
+    user: "${DDEV_UID:-1000}:${DDEV_GID:-1000}"
+    volumes:
+      - ../:/var/www/html
+      - ../screenshots:/var/www/html/screenshots
+    entrypoint: ["node", "/app/cli.js"]
+    command:
+      - --headless
+      - --browser=chromium
+      - --no-sandbox
+      - --port=8931
+      - --host=0.0.0.0
+      - --allowed-hosts=*
+      - --shared-browser-context
+      - --output-dir=/var/www/html/screenshots
+    expose:
+      - "8931"
+    environment:
+      - HTTP_EXPOSE=8931:8931
+      - VIRTUAL_HOST=${DDEV_HOSTNAME}
+      - TZ=${TZ:-UTC}
+      - PLAYWRIGHT_MCP_ALLOW_ORIGINS=*
+      # The image's default user is "node" (UID 1000). When DDEV_UID differs,
+      # the UID has no /etc/passwd entry and HOME resolves to "/", so the MCP
+      # profile dir ($HOME/.cache/ms-playwright/...) fails with EACCES.
+      - HOME=/tmp
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8931/mcp').then(() => process.exit(0)).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - default
+      - ddev_default
+
+    x-ddev:
+      describe-info: |
+        Playwright MCP Server (headless Chromium)
+        Internal URL: http://playwright-mcp:8931/mcp
+        Screenshots: ./screenshots/
+
+networks:
+  ddev_default:
+    name: ddev_default
+    external: true

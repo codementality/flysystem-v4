@@ -1,0 +1,61 @@
+#ddev-generated
+# Agents Sync — Syncs AI agent repos, generates configs for OpenCode and Claude Code
+# Install: ddev add-on get trebormc/ddev-agents-sync
+
+services:
+  agents-sync:
+    container_name: ddev-${DDEV_SITENAME}-agents-sync
+    hostname: agents-sync
+    build:
+      context: .
+      dockerfile: agents-sync-build/Dockerfile.agents-sync
+      args:
+        USER_UID: ${DDEV_UID:-1000}
+        USER_GID: ${DDEV_GID:-1000}
+    labels:
+      com.ddev.site-name: ${DDEV_SITENAME}
+      com.ddev.approot: ${DDEV_APPROOT}
+    restart: "no"
+    user: "${DDEV_UID:-1000}:${DDEV_GID:-1000}"
+
+    volumes:
+      - agents-opencode-data:/agents-opencode
+      - agents-claude-data:/agents-claude
+      - ddev-global-cache:/mnt/ddev-global-cache
+      # Model config cascade (variable-level, see sync.sh load_env):
+      #   repo default < host shared (all projects) < project override
+      - ${HOME}/.ddev/agents-sync/.env.agents:/tmp/env-agents-host:ro
+      - ./.env.agents:/tmp/env-agents-override:ro
+
+    environment:
+      - AGENTS_REPOS=${AGENTS_REPOS:-https://github.com/trebormc/drupal-ai-agents.git}
+      - AGENTS_AUTO_UPDATE=${AGENTS_AUTO_UPDATE:-true}
+      - TZ=${TZ:-UTC}
+
+    networks:
+      - default
+      - ddev_default
+
+    # Run sync on start, then stay alive for depends_on and manual updates
+    # Uses ; instead of && so the container stays alive even if sync fails (no network)
+    command: ["bash", "-c", "/usr/local/bin/sync.sh; sleep infinity"]
+
+    healthcheck:
+      test: ["CMD", "test", "-f", "/agents-claude/CLAUDE.md"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 2s
+
+volumes:
+  agents-opencode-data:
+    name: ddev-${DDEV_SITENAME}-agents-opencode
+  agents-claude-data:
+    name: ddev-${DDEV_SITENAME}-agents-claude
+  ddev-global-cache:
+    external: true
+
+networks:
+  ddev_default:
+    name: ddev_default
+    external: true

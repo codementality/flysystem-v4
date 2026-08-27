@@ -1,0 +1,61 @@
+{
+  "#ddev-generated": true,
+  "$schema": "https://opencode.ai/config.json",
+  "autoupdate": true,
+  "instructions": [
+    "~/.config/opencode/rules/*.md"
+  ],
+  "permission": {
+    "edit": "allow",
+    "write": "allow",
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "webfetch": "allow",
+    "skill": {
+      "*": "allow"
+    },
+    "bash": {
+      "rm -rf /": "deny",
+      "rm -rf /*": "deny",
+      "sudo *": "deny",
+      "docker *": "deny",
+      "tail *": "allow",
+      "git commit*": "deny",
+      "git add*": "deny",
+      "git push*": "deny",
+      "git pull*": "deny",
+      "git fetch*": "deny",
+      "git merge*": "deny",
+      "git rebase*": "deny",
+      "git checkout*": "deny",
+      "git switch*": "deny",
+      "git reset*": "deny",
+      "git restore*": "deny",
+      "git stash*": "deny",
+      "git tag*": "deny",
+      "git cherry-pick*": "deny",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git status*": "allow",
+      "git branch*": "allow",
+      "git show*": "allow",
+      "*": "allow"
+    }
+  },
+  "formatter": {
+    "phpcbf": {
+      "command": ["ssh", "web", "./vendor/bin/phpcbf", "--standard=Drupal,DrupalPractice", "$FILE"],
+      "extensions": [".php", ".module", ".inc", ".install", ".theme", ".profile"]
+    }
+  },
+  "mcp": {
+    "playwright": {
+      "type": "remote",
+      "url": "http://playwright-mcp:8931/mcp",
+      "enabled": true,
+      "timeout": 30000
+    }
+  },
+  "plugin": ["@mohak34/opencode-notifier@latest", "@devtheops/opencode-plugin-otel@latest"]
+}

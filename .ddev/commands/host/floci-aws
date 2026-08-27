@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+
+## #ddev-generated
+## Description: Interact with the Floci local AWS emulator
+## Usage: floci-aws [aws|url|endpoint|health|services|logs|reset|shell] [args]
+## Example: "ddev floci-aws aws s3 mb s3://uploads"\n"ddev floci-aws aws s3 ls"\n"ddev floci-aws url"\n"ddev floci-aws health"\n"ddev floci-aws logs -f"\n"ddev floci-aws reset"
+
+set -eu -o pipefail
+
+CONTAINER="ddev-${DDEV_PROJECT}-floci-aws"
+ENV_FILE="${DDEV_APPROOT}/.ddev/.env.floci-aws"
+
+dotenv() {
+  # Reads one FLOCI_AWS_* value out of the add-on's .env file, falling back to
+  # the default the compose file uses.
+  local value
+  value="$(grep -sE "^${1}=" "${ENV_FILE}" | tail -n1 | cut -d= -f2- | tr -d '\047" ' || true)"
+  echo "${value:-$2}"
+}
+
+HOSTNAME_IN_NETWORK="$(dotenv FLOCI_AWS_HOSTNAME floci-aws)"
+HTTPS_PORT="$(dotenv FLOCI_AWS_HTTPS_PORT 4567)"
+HOST_URL="https://${DDEV_HOSTNAME%%,*}:${HTTPS_PORT}"
+INTERNAL_URL="http://${HOSTNAME_IN_NETWORK}:4566"
+
+require_running() {
+  if ! docker inspect "${CONTAINER}" >/dev/null 2>&1; then
+    echo "Floci is not running. Try 'ddev start'." >&2
+    exit 1
+  fi
+}
+
+case "${1:-url}" in
+  aws)
+    require_running
+    shift
+    # The AWS CLI in the -compat image is a wrapper already pointed at
+    # localhost:4566, so no --endpoint-url is needed here.
+    if ! docker exec "${CONTAINER}" sh -c 'command -v aws >/dev/null 2>&1'; then
+      cat >&2 <<'MSG'
+This Floci image does not include the AWS CLI. Switch to the compat image:
+
+  ddev dotenv set .ddev/.env.floci-aws --floci-aws-image=floci/floci:latest-compat
+  ddev restart
+
+Or run the CLI from wherever you already have it, against:
+MSG
+      echo "  ${HOST_URL}" >&2
+      exit 1
+    fi
+    docker exec -i "${CONTAINER}" aws "$@"
+    ;;
+
+  url|endpoint)
+    # Two different answers, because they are genuinely different endpoints.
+    if [ "${2:-}" = "--internal" ]; then
+      echo "${INTERNAL_URL}"
+    elif [ "${2:-}" = "--host" ]; then
+      echo "${HOST_URL}"
+    else
+      echo "From the project (web container, Lambda, RDS): ${INTERNAL_URL}"
+      echo "From the host (aws CLI, Terraform, your IDE):   ${HOST_URL}"
+    fi
+    ;;
+
+  health)
+    require_running
+    if command -v curl >/dev/null 2>&1; then
+      curl -sk "${HOST_URL}/_floci/health" || {
+        echo "No response from ${HOST_URL}/_floci/health" >&2
+        exit 1
+      }
+      echo
+    else
+      docker inspect --format '{{.State.Health.Status}}' "${CONTAINER}"
+    fi
+    ;;
+
+  services)
+    require_running
+    curl -sk "${HOST_URL}/_localstack/health"
+    echo
+    ;;
+
+  logs)
+    require_running
+    shift
+    docker logs "${CONTAINER}" "$@"
+    ;;
+
+  shell)
+    require_running
+    shift
+    docker exec -it "${CONTAINER}" "${@:-sh}"
+    ;;
+
+  reset)
+    # Emulator state lives in a named volume, so wiping it means removing the
+    # volume while the container is down.
+    if [ "${2:-}" != "-y" ] && [ "${2:-}" != "--yes" ]; then
+      printf 'This deletes all emulated AWS state for %s. Continue? [y/N] ' "${DDEV_PROJECT}"
+      read -r reply
+      case "${reply}" in [yY]*) ;; *) echo "Aborted." >&2; exit 1 ;; esac
+    fi
+    docker rm -f "${CONTAINER}" >/dev/null 2>&1 || true
+
+    # Floci starts real containers for Lambda, RDS, ElastiCache, ECR and the
+    # rest, and DDEV does not know about them, so they outlive `ddev stop`.
+    # Two filters, both needed: floci_emulator=floci-aws excludes containers
+    # belonging to the Azure or GCP emulators (which share the broader
+    # floci=true label), and the network scopes this to THIS project, so
+    # another project's AWS emulator is left alone.
+    spawned="$(docker ps -aq \
+      --filter "label=floci_emulator=floci-aws" \
+      --filter "network=ddev-${DDEV_PROJECT}_default")"
+    if [ -n "${spawned}" ]; then
+      docker rm -f ${spawned} >/dev/null
+      echo "Removed containers Floci had started for this project."
+    fi
+
+    # Compose prefixes the volume with its project name, which DDEV sets to
+    # ddev-<project>. Match on the compose labels rather than on the name alone,
+    # so this can never reach into another project's volumes.
+    vol="$(docker volume ls -q \
+      --filter "label=com.docker.compose.project=ddev-${DDEV_PROJECT}" \
+      --filter "label=com.docker.compose.volume=floci-aws")"
+    if [ -n "${vol}" ]; then
+      docker volume rm ${vol} >/dev/null
+      echo "Floci state removed. Run 'ddev restart' to start clean."
+    else
+      echo "No Floci state volume found for '${DDEV_PROJECT}'; nothing to remove."
+    fi
+    ;;
+
+  *)
+    echo "usage: ddev floci-aws [aws|url|endpoint|health|services|logs|reset|shell]" >&2
+    exit 1
+    ;;
+esac

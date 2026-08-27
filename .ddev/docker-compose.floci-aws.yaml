@@ -1,0 +1,101 @@
+#ddev-generated
+# floci-aws: a local AWS emulator (https://floci.io/aws/), the free drop-in
+# replacement for LocalStack Community.
+#
+# The service, its container, its volume and its `ddev floci-aws` command are
+# all named for the cloud they emulate, not for Floci itself, so the Azure and
+# GCP add-ons can be installed in the same project without colliding.
+#
+# The whole AWS API surface is served on one port. From inside the project the
+# endpoint is http://floci-aws:4566; from the host it is reachable through
+# ddev-router (see HTTP_EXPOSE below and `ddev floci url`).
+#
+# Override any of the FLOCI_AWS_* values below, e.g.:
+#   ddev dotenv set .ddev/.env.floci-aws --floci-aws-storage-mode=memory
+#   ddev dotenv set .ddev/.env.floci-aws --floci-aws-image=floci/floci:latest
+services:
+  floci-aws:
+    container_name: ddev-${DDEV_SITENAME}-floci-aws
+    hostname: ${FLOCI_AWS_HOSTNAME:-floci-aws}
+    # `latest-compat` is the default because it ships the AWS CLI, Python and
+    # boto3, which is what makes `ddev floci aws ...` and init scripts that shell
+    # out to `aws` work with no extra setup. For the ~90 MB native image instead:
+    #   ddev dotenv set .ddev/.env.floci-aws --floci-aws-image=floci/floci:latest
+    image: ${FLOCI_AWS_IMAGE:-floci/floci:latest-compat}
+    restart: "no"
+    expose:
+      - 4566
+    # These labels ensure this service is discoverable by DDEV.
+    labels:
+      com.ddev.site-name: ${DDEV_SITENAME}
+      com.ddev.approot: ${DDEV_APPROOT}
+    environment:
+      # ddev-router: the AWS endpoint on https://<project>.ddev.site:4567
+      VIRTUAL_HOST: ${DDEV_HOSTNAME}
+      HTTP_EXPOSE: ${FLOCI_AWS_HTTP_PORT:-4566}:4566
+      HTTPS_EXPOSE: ${FLOCI_AWS_HTTPS_PORT:-4567}:4566
+
+      # Service URLs Floci hands back (SQS QueueUrl, S3 location, Lambda function
+      # URLs) are built from these. They name the container, not localhost,
+      # because the consumer is normally the project's own web container. See
+      # "Reaching Floci from the host" in the add-on README for the tradeoff.
+      FLOCI_HOSTNAME: ${FLOCI_AWS_HOSTNAME:-floci-aws}
+      FLOCI_BASE_URL: ${FLOCI_AWS_BASE_URL:-http://${FLOCI_AWS_HOSTNAME:-floci-aws}:4566}
+
+      FLOCI_DEFAULT_REGION: ${FLOCI_AWS_REGION:-us-east-1}
+      FLOCI_DEFAULT_ACCOUNT_ID: ${FLOCI_AWS_ACCOUNT_ID:-000000000000}
+
+      # memory | persistent | hybrid | wal. `hybrid` keeps in-memory speed and
+      # flushes asynchronously every few seconds, so state survives `ddev
+      # restart`. Use `memory` for throwaway/CI runs.
+      FLOCI_STORAGE_MODE: ${FLOCI_AWS_STORAGE_MODE:-hybrid}
+      FLOCI_STORAGE_PERSISTENT_PATH: /app/data
+
+      # Docker-backed services (Lambda, RDS, ElastiCache, MSK, OpenSearch, ECS,
+      # …) launch their own containers. Putting them on this project's own
+      # network — DDEV names it ddev-<project>_default — is what lets the web
+      # container reach them and lets them reach Floci back.
+      FLOCI_SERVICES_DOCKER_NETWORK: ${FLOCI_AWS_DOCKER_NETWORK:-ddev-${DDEV_SITENAME}_default}
+
+      # Accept LocalStack's env var names and serve /_localstack/* endpoints, so
+      # an existing LocalStack setup keeps working. Set to false to opt out.
+      LOCALSTACK_PARITY: ${FLOCI_AWS_LOCALSTACK_PARITY:-true}
+
+      # ON by default here, unlike upstream and unlike LocalStack Community.
+      # With it off, S3 ignores signatures entirely and every bucket is
+      # world-readable and world-writable — which makes the public/private
+      # split below meaningless, and makes local behaviour diverge from real
+      # AWS in the direction that hides bugs. Turn it off if you have something
+      # that genuinely cannot sign:
+      #   ddev dotenv set .ddev/.env.floci-aws --floci-aws-s3-enforce-auth=false
+      FLOCI_SERVICES_S3_ENFORCE_AUTH: ${FLOCI_AWS_S3_ENFORCE_AUTH:-true}
+
+      # Read by the init hook in floci-aws/init/ready.d/10-default-buckets.sh,
+      # which creates both buckets on every start. Either can be set to an
+      # empty string to skip it. Not Floci variables — this add-on's own.
+      FLOCI_AWS_PUBLIC_BUCKET: ${FLOCI_AWS_PUBLIC_BUCKET:-public}
+      FLOCI_AWS_PRIVATE_BUCKET: ${FLOCI_AWS_PRIVATE_BUCKET:-private}
+      # Whether the public bucket may be listed with NO credentials. Off by
+      # default. This does not affect a signed ListObjectsV2 from an SDK
+      # holding the project's credentials, which is what application code does
+      # and which works either way.
+      FLOCI_AWS_PUBLIC_BUCKET_LIST: ${FLOCI_AWS_PUBLIC_BUCKET_LIST:-false}
+    volumes:
+      # Emulator state. A named volume rather than a bind mount: Floci writes as
+      # uid 1001 and a host-owned directory would be read-only to it.
+      - "floci-aws:/app/data"
+      # Initialization hooks. Scripts in boot.d/start.d/ready.d/stop.d run at the
+      # matching phase; `ready.d` is the usual one (the API is up by then).
+      - "./floci-aws/init:/etc/floci/init:ro"
+    # No healthcheck here on purpose: the image ships its own, polling
+    # /_floci/health, and `ddev start` waits on it.
+    x-ddev:
+      describe-info: |
+        Endpoint (in project): http://${FLOCI_AWS_HOSTNAME:-floci-aws}:4566
+        Endpoint (from host):  https://${DDEV_HOSTNAME}:${FLOCI_AWS_HTTPS_PORT:-4567}
+        Storage mode: ${FLOCI_AWS_STORAGE_MODE:-hybrid}
+        Buckets: ${FLOCI_AWS_PUBLIC_BUCKET:-public} (public read) / ${FLOCI_AWS_PRIVATE_BUCKET:-private} (owner only)
+        Region: ${FLOCI_AWS_REGION:-us-east-1}  Account: ${FLOCI_AWS_ACCOUNT_ID:-000000000000}
+
+volumes:
+  floci-aws:

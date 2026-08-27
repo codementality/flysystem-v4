@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+## Description: Run PHPCBF (Drupal, DrupalPractice standards) against the flysystem module
+## Usage: phpcsfix
+## Example: "ddev phpcsfix"
+
+set -e
+
+cd /var/www/html
+vendor/bin/phpcbf \
+  --standard=Drupal,DrupalPractice \
+  --extensions=php,module,inc,install,test,profile,theme \
+  web/modules/custom/flysystem \
+  "$@"

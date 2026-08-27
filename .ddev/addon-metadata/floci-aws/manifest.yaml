@@ -1,0 +1,64 @@
+name: floci-aws
+repository: codementality/ddev-floci-aws
+version: 0.5.2
+dependencies:
+    - codementality/ddev-floci-ui
+install_date: "2026-08-27T09:18:45-04:00"
+project_files:
+    - docker-compose.floci-aws.yaml
+    - docker-compose.floci-aws-docker.yaml
+    - docker-compose.floci-aws-web.yaml
+    - floci-aws
+    - commands/host/floci-aws
+global_files: []
+removal_actions:
+    - |
+      #ddev-description:Remove the floci-aws init hook directory
+      dir="${DDEV_APPROOT}/.ddev/floci-aws"
+      if [ -d "${dir}" ]; then
+        # Init scripts you wrote live in this directory and carry no
+        # #ddev-generated marker, so the directory is only removed as a unit when
+        # it still looks untouched.
+        if [ -f "${dir}/init/README.md" ] && grep -q '#ddev-generated' "${dir}/init/README.md" \
+           && [ -z "$(find "${dir}/init" -type f \
+                ! -name 'README.md' ! -name '.gitkeep' \
+                ! -name '10-example.sh.disabled' ! -name '10-default-buckets.sh' -print -quit)" ]; then
+          rm -rf "${dir}"
+        else
+          echo "Leaving '${dir}' in place because it contains your own init scripts; delete it manually if you no longer need them."
+        fi
+      fi
+    - |
+      #ddev-description:Note the emulated AWS state that outlives the add-on
+      # Neither DDEV nor this add-on deletes the state volume: removing an add-on
+      # should not silently destroy the data it was holding. Report the exact
+      # command instead, and only when there is actually something to remove.
+      # The compose project is ddev-<project>, so a project already named
+      # ddev-something produces a doubled prefix. Look the name up rather than
+      # assuming it.
+      vol="$(docker volume ls -q \
+        --filter "label=com.docker.compose.project=ddev-${DDEV_PROJECT}" \
+        --filter "label=com.docker.compose.volume=floci-aws" 2>/dev/null)"
+      if [ -n "${vol}" ]; then
+        echo "The emulated AWS state is in a Docker volume and was not deleted."
+        echo "Remove it with: docker volume rm ${vol}"
+      fi
+      # Containers Floci started are its own, not DDEV's, and `ddev floci-aws
+      # reset` is gone along with the add-on, so name them explicitly here.
+      # Scope by network as well as label: the label alone also matches the Floci
+      # containers of every OTHER project on this machine.
+      net="ddev-${DDEV_PROJECT}_default"
+      orphans="$(docker ps -aq \
+        --filter "label=floci_emulator=floci-aws" \
+        --filter "network=${net}" 2>/dev/null)"
+      if [ -n "${orphans}" ]; then
+        echo "$(echo "${orphans}" | wc -l | tr -d ' ') container(s) started by Floci for this project are still present."
+        echo "Remove them with:"
+        echo "  docker rm -f \$(docker ps -aq --filter label=floci_emulator=floci-aws --filter network=${net})"
+      fi
+    - |
+      #ddev-description:Note the floci-aws .env file
+      file="${DDEV_APPROOT}/.ddev/.env.floci-aws"
+      if [ -f "${file}" ]; then
+        echo "Leaving '${file}' in place; delete it manually if you no longer need your floci-aws settings."
+      fi

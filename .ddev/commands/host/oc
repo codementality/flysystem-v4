@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+#ddev-generated
+## Description: Shortcut for ddev opencode
+## Usage: oc [tui [title...]|shell|command...]
+## Example: "ddev oc" for TUI, "ddev oc shell" for bash
+## ExecRaw: true
+
+exec ddev opencode "$@"

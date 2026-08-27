@@ -1,0 +1,25 @@
+name: ddev-opencode
+repository: https://github.com/codementality/ddev-opencode/tarball/forked
+version: ""
+dependencies:
+    - trebormc/ddev-ai-ssh
+    - trebormc/ddev-playwright-mcp
+    - trebormc/ddev-agents-sync
+    - ddev/ddev-selenium-standalone-chrome
+install_date: "2026-08-27T09:15:29-04:00"
+project_files:
+    - docker-compose.opencode.yaml
+    - opencode-build/Dockerfile.opencode
+    - opencode-build/entrypoint.sh
+    - opencode-build/opencode-usage-wrapper.sh
+    - opencode-build/ssh-config
+    - opencode-build/opencode.default.json
+    - opencode-build/opencode-notifier.default.json
+    - commands/host/opencode
+    - commands/host/oc
+    - .env.multica.example
+global_files: []
+removal_actions:
+    - |
+      #ddev-description:Cleaning up OpenCode
+      echo "OpenCode add-on removed."
