@@ -68,3 +68,5 @@ composer.lock
 *.pub
 ed*
 flysystem-3.0-ref
+.phpunit.*.cache
+screenshots/

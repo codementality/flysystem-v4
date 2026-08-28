@@ -25,7 +25,8 @@
         "drupal/key": "^1.22",
         "drupal/redirect": "^1.13",
         "drush/drush": "^13.0",
-        "league/flysystem": "^3.35"
+        "league/flysystem": "^3.35",
+        "league/flysystem-read-only": "^3.0"
     },
     "require-dev": {
         "drupal/core-dev": "^11.0",

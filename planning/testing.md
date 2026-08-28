@@ -89,7 +89,9 @@ The developer README (see `architecture.md` §11) must include the **required te
 
 ## 8. Milestones (each phase begins with its red tests)
 
-Phase milestones derived from the design's dependency structure. **Every phase starts by writing the failing tests for its contracts (red), then implementing to green.** Each exit criterion is a test result, not a feature list. Provisional until the design review concludes.
+Phase milestones derived from the design's dependency structure. **Every phase starts by writing the failing tests for its contracts (red), then implementing to green.** Each exit criterion is a test result, not a feature list.
+
+**Design freeze status (user, 2026-08-28): COMPLETE — but iterable.** The design freeze concluded; however the project runs agile, not waterfall. Design decisions recorded in the planning docs may be revisited and iterated as features are developed, tested, and unanticipated roadblocks surface. Any iteration to a frozen decision is proposed, reviewed, and recorded before it takes effect.
 
 - **M0 — Design freeze & project setup**: planning docs approved; GitHub repo + seeded issue backlog; CI skeleton. Exit: docs approved, issues created.
 - **M1 — Foundation**: module skeleton, composer deps (`league/flysystem` v3, `flysystem-read-only`, `drupal/key`), `core ^11.4 || ^12` + PHP 8.5, the adapter plugin system + dynamic schema, config-entity + settings.php parsing, tagged-service registration, the **decorated `stream_wrapper_manager`**, connection test. Exit: a configured scheme resolves through the decorated manager — kernel test proves a remapped `public://` resolves to the flysystem wrapper.
