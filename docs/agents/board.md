@@ -6,7 +6,9 @@ board mutation. The board is the visual workflow; the issue tracker (and its
 
 ## Columns (left → right)
 
-`Backlog` → `Needs triage` → `Ready` → `In progress` → `In review` → `Done`
+`Backlog` → `Needs triage` → `Ready` → `In progress` → `In review` → `Tests complete, failing` → `Done`
+
+**IMPORTANT — do NOT set descriptions on Status options.** GitHub's board UI renders a Status option's `description` as a phantom card in that column (a card with the description text, unclickable, not backed by any issue). The meaning of each column lives here in `docs/agents/board.md`, not in the option descriptions. Any option created via the API must have `description: ""`. (Root cause of the 2026-08-28 phantom-card incident.)
 
 | Column | Meaning |
 |---|---|
@@ -15,7 +17,18 @@ board mutation. The board is the visual workflow; the issue tracker (and its
 | Ready | Unblocked and startable — every `blocked_by` ticket has **started** (even if not yet closed). |
 | In progress | Being worked. |
 | In review | Work complete, awaiting independent review/approval. |
-| Done | Closed — dependencies done, reviewed, and closed. |
+| Tests complete, failing | **Red-test ticket (T#) terminal state.** The ticket's sole purpose — writing tests designed to FAIL in preparation for an implementation ticket — is complete: the tests are authored and failing (red). The ticket sits here while its implementation ticket makes those tests green. This is NOT "done": it unblocks the implementation ticket to start (the red state satisfies the blocking edge for starting), and both tickets move to Done together once the tests pass. |
+| Done | Closed — dependencies done, reviewed, and closed. A T# ticket reaches Done when its tests are green (either immediately, or via the Tests complete, failing column then green). |
+
+## The two-ticket test/implementation dance
+
+A feature ticket and its red-test ticket work as a pair:
+
+1. **T#** writes failing tests → **Tests complete, failing** (not Done).
+2. **The implementation ticket starts** — the red state satisfies its blocking edge for *starting* (it does not need T# to be Done to begin).
+3. Implementation makes the tests green.
+4. **Both move to Done** — T# because its tests pass, the implementation because its work is complete and reviewed. This unblocks anything depending on either.
+5. If a T# ticket's tests are already green when its turn arrives (e.g. the work was folded into an earlier slice), it goes **straight to Done** — the "Tests complete, failing" column is only for genuinely red tests awaiting implementation.
 
 ## The dependency rule
 

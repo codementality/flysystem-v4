@@ -33,8 +33,8 @@ Green: skeleton files only. Verify: `./vendor/bin/phpunit --filter testModuleIns
 
 ### Slice 2 — #3 In-memory adapter fixture
 A test-only `inMemory` adapter driver plugin in a dedicated fixture module `tests/modules/flysystem_inmemory_test/` (engine `league/flysystem-memory` is already in require-dev). Declared **REMOTE-type** so tests exercise high-risk remote paths. Gotchas (testing.md §3): `writeStream` buffers; directories virtual; visibility symbolic string. NOTE: the fixture module name is deliberately NOT the 3.0 artifact name (`flysystem_test_adapter`) — no code or naming is carried forward from v3 (plan-m1 §1a).
-Red test: a kernel test configures a scheme backed by the in-memory adapter and asserts `file_exists`/`is_file` on a written file through the factory.
-Green: the driver plugin + minimal factory path to build it.
+Red test (T3, #41): a kernel test resolves the `in_memory` driver through the plugin contract — `createInstance('in_memory', [])` → `buildAdapter([])` → `Filesystem` write → assert `fileExists`/`read` return the written data. (The "through the factory" variant is NOT part of T3: the FilesystemFactory is Slice 4/#5, downstream — see dependency graph. The factory-path assertion belongs to T5/#42.)
+Green: the driver plugin (already shipped with the fixture module) — the red test passes once the plugin contract resolves it.
 
 ### Slice 3 — #4 Adapter plugin system + dynamic schema
 Plugin manager (`plugin.manager.flysystem.adapter_driver`), base driver plugin interface + attribute, per-plugin contract declaration (config keys w/ types/labels/defaults, secret refs, LOCAL/REMOTE type, visibility support). Dynamic schema `flysystem.adapter_config.[%parent.driver]` (drives `config: type: flysystem.adapter_config.[%parent.driver]` in the `flysystem.filesystem.*` entity schema).

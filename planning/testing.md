@@ -15,6 +15,8 @@ The project adopts **TDD** and adheres to it — the design is already spec-firs
 
 **The loop**: red → green → (review). Write the failing test first, then only enough code to pass. Refactoring is not part of the loop — it belongs to code review.
 
+**Red-test tickets**: each feature has a test ticket (T#) whose sole deliverable is failing tests. Per the board model, T# sits in the **"Tests complete, failing"** column once its red tests are authored (its terminal state, NOT Done); the implementation ticket then starts (the red state satisfies the blocking edge for starting) and makes the tests green, after which **both** move to Done. If a T#'s tests are already green when its turn arrives, it goes straight to Done. See `docs/agents/board.md` "The two-ticket test/implementation dance".
+
 **Vertical slices, not horizontal.** One seam, one test, one minimal implementation per cycle. Never write the full test suite and then the implementation — a horizontal "all tests first" pass tests *imagined* behavior and commits to test structure before understanding the code. Each test is a tracer bullet that responds to what the last cycle taught.
 
 **Seams — pre-agreed public boundaries (confirmed with the user 2026-08-27).** Tests live at seams, never against internals. No test is written at an unconfirmed seam:

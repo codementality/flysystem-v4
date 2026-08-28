@@ -117,3 +117,13 @@
 - **Category**: phpcs
 - **Applies to**: every module QA handoff; every "green"/"clean" claim
 - **Suggested improvement**: rule 8's sub-bullets are the permanent home; treat any green claim without pasted output as a governance violation, not a report.
+
+### [BOARD_STATUS_OPTION_DESCRIPTION_RENDERS_PHANTOM_CARD] — 2026-08-28
+
+- **Problem**: The board showed an unclickable, unreadable "ticket" in the "Tests complete, failing" column. The API (four queries: items, drafts, views, filters) reported the column EMPTY and all 73 items accounted for — yet the card persisted across refresh and even a column remove/recreate. User reported it as a real, inaccessible ticket ("I can't take this to a client").
+- **Root cause**: GitHub Projects v2 renders a Status field option's `description` string AS A CARD in that column. The phantom was never a board item — it was option metadata drawn as a card. Because it's not issue-backed, it has no number/link and cannot be clicked. The remove+recreate didn't fix it because the recreate re-added the same description.
+- **Failure type**: `KNOWLEDGE_GAP` (GitHub UI behavior not covered by any rule/skill) — compounded by a long misdiagnosis hunt (items/drafts/views/option-IDs) when the card's text, read by the user, identified the option description as the source.
+- **Solution**: Clear the option's `description` (set to `""`) — the phantom disappears. NEVER set descriptions on Status options; column meaning lives in `docs/agents/board.md`. Any option created via the API must have `description: ""`.
+- **Category**: other (GitHub Projects UI)
+- **Applies to**: any board Status-field mutation via the API
+- **Suggested improvement**: encoded in `docs/agents/board.md` under the Columns heading; treat any board API call creating/updating Status options as requiring `description: ""`.
