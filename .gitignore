@@ -70,3 +70,4 @@ ed*
 flysystem-3.0-ref
 .phpunit.*.cache
 screenshots/
+web/modules/custom/flysystem
