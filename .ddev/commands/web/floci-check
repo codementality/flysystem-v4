@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+## Description: Verify the local Floci-emulated AWS (S3 + CloudFront) is reachable and the default buckets are available via the API (runs in the web container)
+## Usage: floci-check
+## Example: "ddev floci-check"
+
+set -e
+
+cd /var/www/html
+php scripts/check_floci.php
