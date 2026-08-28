@@ -77,11 +77,27 @@ Each item in `architecture.md` §4–§7 gets a named test (primarily contract l
 
 ## 6. CI & environments
 
-- **Test matrix**: Drupal 11.4 and Drupal 12, PHP 8.5 (D12 floor). PHPUnit 11 for the D12 leg.
+- **Test matrix**: currently Drupal 11.4 on PHP 8.4 (module not yet D12-ready). Drupal 12 + PHP 8.5 (D12 floor) added when the module targets it. PHPUnit 11 for the D12 leg.
 - Floci containers run in the GitLab pipeline; DDEV addon for local integration runs.
 - No test depends on real AWS credentials or external network.
-- Config form: project-root `phpunit.xml` ("Form ROOT" pattern) with suites for unit/kernel/functional, and explicit test directory paths per module.
+- **Config form**: Drupal core's `phpunit.xml.dist` ("Form CORE"), with env vars inline — `SIMPLETEST_DB=mysql://db:db@db/test SIMPLETEST_BASE_URL=http://web ./vendor/bin/phpunit -c web/core/phpunit.xml.dist --bootstrap web/core/tests/bootstrap.php <test-path>`. Matches `.ddev/commands/web/phpunit` (the canonical GitLab-CI-mirroring command).
 - `#[RunTestsInSeparateProcesses]` on Kernel/Functional classes (D11.3+ requirement), never on Unit.
+
+### Pipeline-success definition (user, 2026-08-28)
+
+"Pipeline success" is not a blanket green. The following criteria govern whether a GitLab pipeline run counts as pass:
+
+| Job result | Verdict | Action |
+|---|---|---|
+| `cspell` warnings | **Pass** (with debt) | Fix with the next code push |
+| CSS lint warnings | **Pass** (with debt) | Fix with the next code push |
+| JS lint (`eslint`) warnings | **Pass** (with debt) | Fix with the next code push |
+| `phpcs` warnings/errors **due to the Flysystem module** | **NOT success** | Fix before the pipeline counts as passing |
+| `phpstan` warnings **due to the Flysystem module** | **NOT success** | Fix before the pipeline counts as passing |
+| `phpunit` deprecations **due to the Flysystem module** | **NOT success** | Fix before the pipeline counts as passing |
+| `phpunit` test failures (any) | **NOT success** | Always address |
+
+Rule of thumb: non-PHP hygiene jobs (cspell, css, js lint) may be deferred a push; anything that reflects the module's PHP correctness — phpcs, phpstan, phpunit deprecations, phpunit failures — must be fixed before the run is considered a pass.
 
 ## 7. Adapter-plugin developer README (test requirement)
 

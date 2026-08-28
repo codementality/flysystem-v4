@@ -97,3 +97,13 @@
 - **Category**: other (project constraint)
 - **Applies to**: every v4 implementation session/delegation
 - **Suggested improvement**: never reference `flysystem-3.0-ref/` in any implementation prompt or code-search for this project; cite planning docs only.
+
+### [RUN_CANONICAL_QA_BEFORE_HANDOFF] — 2026-08-28
+
+- **Problem**: The #2 module skeleton files (flysystem.info.yml, flysystem.module) were handed over for commit without running the canonical local QA first. The GitLab pipeline's phpcs job failed (missing @file short description, missing trailing newlines) — violations the locally-installed drupal/coder was supposed to catch before push.
+- **Root cause**: I treated local QA as a post-hoc check rather than a pre-handoff gate. The canonical commands (ddev phpcs / phpstan / phpunit) exist in `.ddev/commands/web/` and the tooling is installed locally — they exist precisely so the pipeline is not the first place violations surface.
+- **Failure type**: `ASSUMPTION_ERROR` (assumed the pipeline would be the QA gate; the local tooling is the gate)
+- **Solution**: Run the FULL canonical QA sequence (phpcs, phpstan, phpunit) on the working module checkout BEFORE handing anything over for commit. Any violation caught locally is fixed before the user commits; the pipeline should pass on the first push, not surface violations.
+- **Category**: phpcs
+- **Applies to**: every module code handoff in this project
+- **Suggested improvement**: governance rule 8 already mandates the canonical commands — add the explicit step: QA-before-handoff, not QA-after-commit.
