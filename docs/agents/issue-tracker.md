@@ -13,6 +13,15 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 
 Infer the repo from `git remote -v`; `gh` does this automatically when run inside a clone.
 
+## Agent conventions (self-adopted 2026-08-28)
+
+- **Trim `gh` output with `--jq` on every call.** Raw `gh` responses can be large JSON;
+  always add `--jq` (or `--json` field selection) so output carries only what the task
+  needs. Never dump full issue/API payloads into the conversation.
+- **Keep ticket bodies and dependency edges in sync.** The canonical dependency state
+  lives in the `blocked_by` edges; ticket bodies may also say "Depends on: …". Whenever
+  edges change, update the matching "Depends on" line in the body so the two never drift.
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
