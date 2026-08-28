@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="flysystem-contrib-project">
+  <description>PHP CodeSniffer configuration for the Flysystem contrib module. Mirrors the Drupal GitLab pipeline's default phpcs config (Drupal ruleset, contrib extension list) so local QA enforces exactly what CI runs.</description>
+
+  <rule ref="Drupal"/>
+
+  <arg name="extensions" value="engine,inc,info,install,module,php,profile,test,theme,yml"/>
+</ruleset>

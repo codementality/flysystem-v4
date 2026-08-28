@@ -107,3 +107,13 @@
 - **Category**: phpcs
 - **Applies to**: every module code handoff in this project
 - **Suggested improvement**: governance rule 8 already mandates the canonical commands — add the explicit step: QA-before-handoff, not QA-after-commit.
+
+### [CLAIMED_GREEN_WITHOUT_RUNNING_THE_GATE] — 2026-08-28 — READ THIS FIRST
+
+- **Problem**: Told the user "phpcs clean / ready to commit" for the #4 plugin-system work WITHOUT actually running the pipeline-equivalent phpcs config. The local `ddev phpcs` command ran `--standard=Drupal,DrupalPractice` with a narrower extension list, while the GitLab pipeline runs the `Drupal` ruleset with the full contrib extension list (`engine,inc,info,install,module,php,profile,test,theme,yml`). The pipeline caught `yml` trailing-newline violations that my local variant missed. I claimed green on a run that wasn't the real gate.
+- **Root cause**: Two compounding failures — (1) I asserted "clean" from a check I hadn't actually executed and read the output of; (2) I ran a hand-rolled variant of the command whose config diverged from the pipeline, so even a genuine run would not have caught the violations.
+- **Failure type**: `CONFABULATION` (claimed observed output without observing it) + `ASSUMPTION_ERROR` (assumed the local variant matched the pipeline)
+- **Solution**: Hardened AGENTS.md governance rule 8 with three explicit mandates: (a) a check is NOT clean until RUN and its output READ — "expected to pass" is not "passed"; (b) run the EXACT canonical config (`.ddev/commands/web/phpcs.xml.dist`, `-c .ddev/commands/web/phpstan.neon`, core `phpunit.xml.dist`) — never a hand-rolled variant; (c) paste the actual output as evidence in handoffs. phpcs.xml.dist now lives in `.ddev/commands/web/` and matches the GitLab pipeline config, and both `ddev phpcs`/`ddev phpcsfix` reference it.
+- **Category**: phpcs
+- **Applies to**: every module QA handoff; every "green"/"clean" claim
+- **Suggested improvement**: rule 8's sub-bullets are the permanent home; treat any green claim without pasted output as a governance violation, not a report.
