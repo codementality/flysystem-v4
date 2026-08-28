@@ -36,7 +36,7 @@ The **Floci integration layer exercises seams 1–5 against real S3** — same a
 
 ## 3. Contract layer
 
-- **In-memory adapter fixture** (`feature-evaluation-log.md` Item 7): a test-only "inMemory" adapter driver plugin (following the 3.0-ref `flysystem_test_adapter` pattern) so kernel tests configure a **full scheme** backed by a real, complete `FilesystemAdapter` — exercising the wrapper, decorated `stream_wrapper_manager`, and registration path end-to-end.
+- **In-memory adapter fixture** (`feature-evaluation-log.md` Item 7): a test-only "inMemory" adapter driver plugin in a dedicated fixture module (`tests/modules/flysystem_inmemory_test/`) so kernel tests configure a **full scheme** backed by a real, complete `FilesystemAdapter` — exercising the wrapper, decorated `stream_wrapper_manager`, and registration path end-to-end. Built fresh (no code or naming carried from v3 — see plan-m1.md §1a).
   - Declared **REMOTE-type** so tests exercise the high-risk remote code paths.
   - Gotchas encoded: `writeStream` buffers (don't assert streaming semantics); directories are virtual; visibility is a symbolic string.
 - **Mocked adapters** only where counting is required (e.g. "exactly one PUT on flush" — a counting adapter mock).

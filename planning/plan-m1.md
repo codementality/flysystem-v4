@@ -29,10 +29,10 @@ Adapter discovery (GitHub #38): **attribute + plugin manager** (D11/D12-native),
 ### Slice 1 — #2 Module skeleton
 Files: `flysystem.info.yml`, `flysystem.module` (minimal), module `composer.json`, empty `services.yml` only if a service is defined.
 Red test: Kernel test that installs the module (`installSchema`/`$this->installConfig` equivalent) without schema/config errors.
-Green: skeleton files only. Verify: `ssh web ./vendor/bin/phpunit --filter testModuleInstalls web/modules/custom/flysystem/tests/src/Kernel` (Form ROOT).
+Green: skeleton files only. Verify: `./vendor/bin/phpunit --filter testModuleInstalls` via the canonical command (Form CORE).
 
 ### Slice 2 — #3 In-memory adapter fixture
-A test-only `inMemory` adapter driver plugin (pattern: 3.0-ref `flysystem_test_adapter`; engine `league/flysystem-memory` is already in require-dev). Declared **REMOTE-type** so tests exercise high-risk remote paths. Gotchas (testing.md §3): `writeStream` buffers; directories virtual; visibility symbolic string.
+A test-only `inMemory` adapter driver plugin in a dedicated fixture module `tests/modules/flysystem_inmemory_test/` (engine `league/flysystem-memory` is already in require-dev). Declared **REMOTE-type** so tests exercise high-risk remote paths. Gotchas (testing.md §3): `writeStream` buffers; directories virtual; visibility symbolic string. NOTE: the fixture module name is deliberately NOT the 3.0 artifact name (`flysystem_test_adapter`) — no code or naming is carried forward from v3 (plan-m1 §1a).
 Red test: a kernel test configures a scheme backed by the in-memory adapter and asserts `file_exists`/`is_file` on a written file through the factory.
 Green: the driver plugin + minimal factory path to build it.
 
@@ -73,14 +73,16 @@ Verify: the exit kernel test + `ssh web drush cr` clean.
 - Contract layer only in M1; Floci integration arrives in M4 (the `aws_s3` endpoint override is #24, not M1).
 - Every slice: red → green → stop; no refactoring inside the loop.
 
-## 6. Verification commands (Form CORE — Drupal core's phpunit.xml.dist)
+## 6. Verification commands (canonical `.ddev/commands/web/*`, matching the GitLab pipeline)
 
 ```bash
-ssh web test -f phpunit.xml && echo ROOT || echo CORE
+# phpunit — Drupal core's phpunit.xml.dist (Form CORE), inline env vars
 SIMPLETEST_DB=mysql://db:db@db/test SIMPLETEST_BASE_URL=http://web \
   ./vendor/bin/phpunit -c web/core/phpunit.xml.dist \
   --bootstrap web/core/tests/bootstrap.php \
   web/modules/custom/flysystem/tests/src/Kernel
-ssh web ./vendor/bin/phpstan analyse web/modules/custom/flysystem --level=8
-ssh web ./vendor/bin/phpcs --standard=Drupal --extensions=php,module,install,info,yml web/modules/custom/flysystem
+# phpstan — module config in .ddev/commands/web
+./vendor/bin/phpstan analyse --no-progress -c .ddev/commands/web/phpstan.neon web/modules/custom/flysystem
+# phpcs — GitLab-pipeline-equivalent config in .ddev/commands/web (Drupal ruleset + contrib extension list)
+./vendor/bin/phpcs --standard=.ddev/commands/web/phpcs.xml.dist web/modules/custom/flysystem
 ```
