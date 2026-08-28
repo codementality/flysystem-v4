@@ -11,6 +11,7 @@
 5. **The agent answers to the user at every gate.** The user may stop, slow down, or redirect at any moment. The agent does not push back on that.
 6. **Present for decision in restated, topic-organized lists.** When presenting information for the user to review or decide on, use bulleted or numbered lists organized by topic, and RESTATE each item (what it is / the decision / the impact). Never assume the user recalls an earlier screen — tokens scroll prior content out of view; restate rather than reference "as discussed." If you are making the decision yourself, say so explicitly.
 7. **Beads is retired for this project.** Task tracking is GitHub issues + the Projects v2 board, not beads. Do not run `bd` commands or the beads session-start ritual; the `.beads/` directory is not initialized and beads is not used here.
+8. **Canonical test process.** `.ddev/commands/web/*` is the canonical test/QA process for any module in this project, mirroring the GitLab CI sequence: `ddev phpunit`, `ddev phpcs`, `ddev phpstan`, `ddev phpcsfix`, `ddev floci-check`, `ddev phpunit-ostests`. Use these (not ad-hoc commands) for module verification.
 
 ## Agent skills
 

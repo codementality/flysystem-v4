@@ -9,7 +9,7 @@ Scope: the six M1 GitHub issues (#2–#7). Source of truth: `planning/architectu
 - `core_version_requirement: ^11.4 || ^12`; `dependencies: drupal:file, drupal:image, key:key`.
 - Module `composer.json` `"php": ">=8.4"` — required for installability on the current D11.4 dev stack (PHP 8.4); the D12 leg runs PHP 8.5. (Deviates from "PHP 8.5" phrasing in `architecture.md` §12: a `^11.4 || ^12` module must install on 8.4. D12 test leg targets 8.5.)
 - Only composer dep the module needs beyond league/flysystem v3 (already in site root): `league/flysystem-read-only` (used in M3, but declared now per #2).
-- Project-root `phpunit.xml` (Form ROOT): suites unit/kernel/functional with `web/modules/custom/*/tests/src/<Type>` paths; `SIMPLETEST_DB`/`SIMPLETEST_BASE_URL`/`MINK_DRIVER_ARGS_WEBDRIVER` env; `#[RunTestsInSeparateProcesses]` on Kernel/Functional classes, never on Unit.
+- Tests run against **Drupal core's `phpunit.xml.dist`** (Form CORE — no project-root phpunit.xml), env vars inline: `SIMPLETEST_DB=mysql://db:db@db/test SIMPLETEST_BASE_URL=http://web ./vendor/bin/phpunit -c web/core/phpunit.xml.dist --bootstrap web/core/tests/bootstrap.php <test-path>`. Matches the project's `.ddev/commands/web/phpunit`. `#[RunTestsInSeparateProcesses]` on Kernel/Functional classes, never on Unit.
 
 ## 1a. NO CODE FORWARD FROM V3 (binding, user directive 2026-08-28)
 
@@ -27,7 +27,7 @@ Adapter discovery (GitHub #38): **attribute + plugin manager** (D11/D12-native),
 ## 3. Vertical slices (TDD — one seam, red test first, then minimal green)
 
 ### Slice 1 — #2 Module skeleton
-Files: `flysystem.info.yml`, `flysystem.module` (minimal), module `composer.json`, `phpunit.xml` (project root), empty `services.yml` only if a service is defined.
+Files: `flysystem.info.yml`, `flysystem.module` (minimal), module `composer.json`, empty `services.yml` only if a service is defined.
 Red test: Kernel test that installs the module (`installSchema`/`$this->installConfig` equivalent) without schema/config errors.
 Green: skeleton files only. Verify: `ssh web ./vendor/bin/phpunit --filter testModuleInstalls web/modules/custom/flysystem/tests/src/Kernel` (Form ROOT).
 
@@ -73,11 +73,14 @@ Verify: the exit kernel test + `ssh web drush cr` clean.
 - Contract layer only in M1; Floci integration arrives in M4 (the `aws_s3` endpoint override is #24, not M1).
 - Every slice: red → green → stop; no refactoring inside the loop.
 
-## 6. Verification commands (Form ROOT — project phpunit.xml exists after Slice 1)
+## 6. Verification commands (Form CORE — Drupal core's phpunit.xml.dist)
 
 ```bash
-ssh web test -f phpunit.xml && echo ROOT
-ssh web ./vendor/bin/phpunit web/modules/custom/flysystem/tests/src/Kernel
+ssh web test -f phpunit.xml && echo ROOT || echo CORE
+SIMPLETEST_DB=mysql://db:db@db/test SIMPLETEST_BASE_URL=http://web \
+  ./vendor/bin/phpunit -c web/core/phpunit.xml.dist \
+  --bootstrap web/core/tests/bootstrap.php \
+  web/modules/custom/flysystem/tests/src/Kernel
 ssh web ./vendor/bin/phpstan analyse web/modules/custom/flysystem --level=8
 ssh web ./vendor/bin/phpcs --standard=Drupal --extensions=php,module,install,info,yml web/modules/custom/flysystem
 ```
