@@ -15,6 +15,7 @@
     - **A check is NOT "clean" until you have RUN it and READ its output.** Claiming "phpcs clean" or "QA green" without executing the exact canonical command and reading the actual output is forbidden. "Expected to pass" is not "passed." If a command fails, errors, or you did not actually run it, say so — the work is NOT ready.
     - **Run the EXACT canonical config, never a variant.** phpcs/phpcbf MUST use `.ddev/commands/web/phpcs.xml.dist` (the Drupal-ruleset + contrib-extension-list config that matches the GitLab pipeline's default). phpstan MUST use `-c .ddev/commands/web/phpstan.neon`. phpunit MUST use core's `phpunit.xml.dist` with the inline env vars. A hand-rolled flag set that differs from these (e.g. a different `--standard` or extension list) is NOT a valid QA run — it will miss violations the pipeline catches, as happened with `yml` trailing-newline errors.
     - **When a check is green locally, paste the actual output** (the `OK (N tests...)` line, the `[OK] No errors` line, the empty phpcs result) in the handoff message as evidence. A green claim without pasted output is not acceptable.
+9. **American English spelling.** Use US spellings in all written artifacts (code, comments, docblocks, docs, commit messages, issue text): `recognize`/`recognized`/`recognizing` (never `recognise`/`recognised`), `color` (never `colour`), `behavior` (never `behaviour`), etc. (Noted by user 2026-08-29.)
 
 ## Agent skills
 

@@ -127,3 +127,13 @@
 - **Category**: other (GitHub Projects UI)
 - **Applies to**: any board Status-field mutation via the API
 - **Suggested improvement**: encoded in `docs/agents/board.md` under the Columns heading; treat any board API call creating/updating Status options as requiring `description: ""`.
+
+### [STREAM_WRAPPER_SNAKE_CASE_PHPCS] — 2026-08-29
+
+- **Problem**: Implementing Drupal's `StreamWrapperInterface`/`PhpStreamWrapperInterface` (and `LocalStream`-style PHP stream wrappers generally) triggers 19 `Drupal.NamingConventions.ValidFunctionName.ScopeNotCamelCaps` violations under the canonical contrib phpcs config — the PHP stream API mandates snake_case method names (`url_stat`, `stream_open`, `dir_opendir`, …) that Drupal's sniff rejects.
+- **Root cause**: The stream wrapper interface follows PHP's native stream-wrapper structure (snake_case); Drupal core's own `LocalStream.php` produces the identical 19 errors and only passes core's phpcs because core's own `phpcs.xml.dist` omits that sniff.
+- **Failure type**: `ENVIRONMENT_QUIRK` (standards-config vs PHP-mandated naming)
+- **Solution**: Inline `phpcs:ignore` annotations on the snake_case methods. **This is the correct handling, confirmed by the user (2026-08-29)** — do NOT rename the methods, do NOT modify the shared phpcs config. Applies to `FlysystemStreamWrapper` and any future stream wrapper.
+- **Category**: phpcs
+- **Applies to**: every future stream-wrapper implementation in this project (and the flysystem module's M2 wrapper hardening)
+- **Suggested improvement**: keep this as the standing guidance; no config change.
