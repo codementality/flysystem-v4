@@ -24,6 +24,25 @@ The v4 rewrite brings **NO CODE FORWARD from Flysystem v3**. The `flysystem-3.0-
 
 Adapter discovery (GitHub #38): **attribute + plugin manager** (D11/D12-native), per `architecture.md` §11. Rejected: service-tagged adapters (harder contrib DX). The developer README (M6) hides this choice from contributors anyway.
 
+## 2a. Execution status & scope corrections (2026-08-29)
+
+The six-issue scope (#2–#7) did **not** own two deliverables the design requires. Both were found
+post-hoc during execution, filed, and (for the entity) completed:
+
+1. **`flysystem_filesystem` config entity type** (schema, `config_export`, admin form) — required by
+   Slice 4 (#5) as its config-entity source. Filed as **#74**, implemented and closed 2026-08-29
+   (commit `722738a`, branch `4.0.x`). Red→green: `tests/src/Kernel/FlysystemFilesystemEntityTest.php`.
+   Review follow-ups filed: **#75** (Functional form test), **#76** (AJAX driver-swap on the add form,
+   blocked by #78), **#77** (machine_name element).
+2. **Shipped adapter drivers (local, s3, aws_s3, sftp)** — plugin classes + config forms required by
+   Slice 3's "shipped drivers" green (only the schema fragments + `in_memory` fixture existed). Filed
+   as **#78** (M3, `planning gap identified`) — the dependency home for #76.
+
+Execution status:
+- Slices 1–3 done: #2 (skeleton), #3 (in-memory fixture), #4 (adapter plugin system) closed.
+- #74 done (config entity type, above). **#42 (T5 — FilesystemFactory red tests) is Ready** (next).
+- Slices 4–6 (#5, #6, #7) and #73 remain; they chain behind #42.
+
 ## 3. Vertical slices (TDD — one seam, red test first, then minimal green)
 
 ### Slice 1 — #2 Module skeleton

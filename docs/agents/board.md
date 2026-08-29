@@ -52,6 +52,7 @@ Labels carry **blocking/decision state**, NOT workflow position (the column does
 | `needs-triage` | Issue not yet evaluated/routed. |
 | `decision-made` | A human decision has been recorded; the ticket is a candidate for a status review. |
 | `seam:*` | TDD test seam boundary (adapter-plugin, stream-wrapper, file-system, url-generation, service-api, migration, integrations, stream-wrapper-manager). |
+| `planning gap identified` | The issue records a deliverable the planning docs require but no ticket owned at scoping time; waits in **Needs triage** for routing into a milestone/owner. See `docs/agents/triage-labels.md`. |
 
 Deprecated/avoided: `ready-for-agent` and `ready-for-human` duplicate the Ready/Needs
 triage columns and are not applied to new tickets.

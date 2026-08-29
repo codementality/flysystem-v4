@@ -24,4 +24,9 @@ this project because they duplicate columns and are no longer applied to new tic
 - `ready-for-human` → the board's **Needs triage** column (with the `needs-human` label) is authoritative.
 
 Labels that remain active as blocking/decision markers: `dependency-blocked`,
-`needs-human`, `needs-triage`, `decision-made`, and the `seam:*` family.
+`needs-human`, `needs-triage`, `decision-made`, `planning gap identified`, and the `seam:*` family.
+
+- `planning gap identified` — the issue records a deliverable the planning docs require
+  but no ticket owned at scoping time (found post-hoc during execution). Such tickets
+  sit in **Needs triage** until the gap is routed into a milestone/owner. Created 2026-08-29;
+  first applied: #78 (shipped adapter drivers).

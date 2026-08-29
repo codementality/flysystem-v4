@@ -145,7 +145,7 @@ Per Q4 and the developer README requirement:
 
 ## 12. Drupal 12 constraints
 
-- **PHP `>=8.5`; `core_version_requirement: ^11.4 || ^12`.** Develop against 11.4 today; test against both majors.
+- **PHP `>=8.4`; `core_version_requirement: ^11.4 || ^12`.** Develop against 11.4 today; test against both majors. (PHP floor corrected 2026-08-29 per `independent-plan-review.md` B/C4: a `^11.4` module must install on 8.4; the D12 leg raises to 8.5 — tracked as #72.)
 - **Never use an API flagged for removal in 11.4+** (the core team's deprecation markers are authoritative). Specifically: use `FileExists` enum everywhere (`EXISTS_*` constants are removed in D12), never pass ints.
 - `StreamWrapperInterface` is byte-identical in 11 and 12 (VERIFIED) — build against the current surface with confidence.
 - **Never hard-reference `\Drupal\system\FileDownloadController`** (namespace move in-flight in 12); rely on interfaces/services.
