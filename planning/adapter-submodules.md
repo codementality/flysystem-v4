@@ -188,7 +188,9 @@ is its own composer package (`drupal/flysystem_aws`, `drupal/flysystem_asyncaws`
 
 Per the project rule — *"if it isn't written down in a persistent format, it does NOT exist"* —
 this section records the board review of all tickets from Milestone 2 forward, presented to the user
-for approval. **Status: PRESENTED, NOT YET APPROVED** — nothing below has been applied.
+for approval. **Status: APPLIED 2026-08-30 (user approval).** The following was executed on the
+GitHub board/tracker: milestones created and renumbered; new tickets filed; scope edits applied;
+#35 reopened with comment-only scope change; dependency edges wired.
 
 ### 7.1 Milestones to create — and the renumbered sequence
 
