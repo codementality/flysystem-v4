@@ -8,15 +8,19 @@ Status: **Draft** — derived from the design discussion (2026-08). Companion do
 
 Provide an **opt-in replacement layer** for Drupal Core's filesystem and stream-wrapper functionality. A site that configures a scheme (via settings.php or config entities) gets flysystem-backed storage; core schemes (`public://`, `private://`, `temporary://`) are **remappable** to flysystem adapters, and new schemes are definable. Unconfigured schemes behave exactly as core.
 
-**Non-goals**: patching or rewriting Drupal Core. No backporting focus to v3 (byproducts only). No support for third-party adapters beyond the four shipped ones.
+**Non-goals**: patching or rewriting Drupal Core. No backporting focus to v3 (byproducts only). Core ships two adapters (`in_memory`, `local`); three external-SDK adapters (`s3`, `aws_s3`, `sftp`) are optional submodules; third-party adapters are the community's responsibility. See `adapter-submodules.md` (the carve-out plan, 2026-08-30).
 
 **Core constraint**: every flysystem service that replaces a core service **adheres to the existing core interface contract** (`StreamWrapperInterface`, `FileSystemInterface`, `StreamWrapperManagerInterface`), so contrib modules relying on those contracts continue to function.
 
 ## 2. Support boundary
 
-- **Supported adapters (shipped, supported)**: `local`, `s3` (AsyncAws), `aws_s3` (AWS SDK v3), `sftp`.
+- **Core adapters (shipped, supported, built into Core)**: `in_memory`, `local`.
+- **Optional submodules (shipped with the project, enabled independently)**: `s3` (AsyncAws,
+  `flysystem_asyncaws`), `aws_s3` (AWS SDK v3, `flysystem_aws`), `sftp` (`flysystem_sftpv3`). Each owns its
+  driver plugin, schema, config form, and tests — Flysystem Core has zero prior knowledge of them.
+  See `adapter-submodules.md`.
 - **Third-party adapters (GCP, Azure, etc.)**: supported as *extension points* — the plugin API is stable, documented, and tested — but they are the community's responsibility, not a module support burden. Documented verbatim in the developer README.
-- **In-memory adapter**: test-support fixture only, never a production adapter.
+- **In-memory adapter**: a shipped Core driver (REMOTE-type, exercises the remote code paths in tests).
 
 ## 3. Core architecture
 
@@ -139,8 +143,9 @@ Per `feature-evaluation-log.md` Item 3: expose a per-scheme checksum/integrity A
 
 Per Q4 and the developer README requirement:
 
-- **All adapters (including the four shipped) are plugins** discovered via attribute + plugin manager (D11/D12-native). Contrib adapters are first-class.
-- Each plugin **declares its whole contract in one place**: config keys (types, labels, defaults — replacing 3.0's scattered `?? default` fallbacks), which keys are secrets (Key-module `*_key_id` resolution, preserved), LOCAL/REMOTE type, visibility support. One declaration feeds the admin form, config schema (`flysystem.adapter_config.[%parent.driver]`), the adapter factory, and the connection test.
+- **All adapters (including the two Core drivers and the three submodule adapters) are plugins** discovered via attribute + plugin manager (D11/D12-native). Contrib adapters are first-class.
+- Each plugin **declares its whole contract in one place**: config keys (types, labels, defaults — replacing 3.0's scattered `?? default` fallbacks), which keys are secrets (Key-module `*_key_id` resolution, preserved), LOCAL/REMOTE type, visibility support. One declaration feeds the admin form, config schema (`flysystem.adapter_config.[%parent.driver]`), the adapter factory, and the connection test. **The entity holds zero driver knowledge**: the secret exactly-one-of validation derives its pairs from the selected plugin's `getConfigKeys()` `secret` markers, never from a Core constant (`adapter-submodules.md` §3).
+- **The three submodules are the reference "contrib-style" plugins** — they prove the contract end-to-end via the same discovery → registration → scheme-mapping → runtime path a third-party contrib adapter uses (`adapter-submodules.md` §2.2).
 - **Developer README (first-class deliverable)**: a step-by-step walkthrough for implementing an adapter plugin — config-key declaration, schema fragment, secret handling, type, connection test, required tests — using one shipped adapter as the annotated reference. Written so the discovery-mechanism choice doesn't leak into the contributor experience.
 
 ## 12. Drupal 12 constraints
@@ -168,7 +173,7 @@ Per the design discussion (VERIFIED against core 11.4):
 
 ## 15. Open items (deferred to implementation)
 
-- Adapter discovery: attribute + plugin manager vs service-tagged services (developer README written so the choice is invisible to contributors).
+- Adapter discovery: **attribute + plugin manager** (resolved; see `plan-m1.md` §2 and `adapter-submodules.md`).
 - Stat-cache TTL value and cache-bin choice.
 - Connection-test UX details.
 - Whether the connection-status entity fields gain fields (additive only).

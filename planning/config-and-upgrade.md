@@ -13,6 +13,11 @@ Goal: 3.0 → 4.0 upgrades with minimal disruption — every *working* 3.0 confi
 
 ## 2. The preserved settings.php array (verbatim shape)
 
+**Driver availability note (carve-out, 2026-08-30):** the `s3`/`aws_s3`/`sftp` settings.php shapes
+below are preserved **verbatim** (additive-only), but each now requires its optional submodule
+enabled — `flysystem_asyncaws`, `flysystem_aws`, `flysystem_sftpv3` respectively. `local` and `in_memory`
+ship in Flysystem Core. See `adapter-submodules.md`.
+
 ### Local File System
 ```php
 $settings['flysystem']['flylocal'] = [
@@ -211,7 +216,7 @@ $settings['flysystem']['sftp_media'] = [
 - `config_export`: `id, label, driver, public_url_base, writable, config, connection_status, connection_status_message`.
 - Base fields: `id` (scheme), `label`, `driver`, `public_url_base` (nullable), `writable` (bool), `config` (array), `connection_status` (default `'untested'`), `connection_status_message`.
 - **Schema**: `flysystem.filesystem.*` maps `config: type: flysystem.adapter_config.[%parent.driver]` — the dynamic per-driver schema.
-- **Key-module secret resolution** (preserved): the sensitive-field map resolves `*_key_id` references:
+- **Key-module secret resolution** (preserved): the sensitive-field map resolves `*_key_id` references. The map lives **in each driver plugin's `getConfigKeys()` `secret` markers** (not in a Core constant — `adapter-submodules.md` §3):
   - `s3`/`aws_s3`: `credentials.secret` → `credentials.secret_key_id`
   - `sftp`: `password` → `password_key_id`, `private_key` → `private_key_key_id`, `passphrase` → `passphrase_key_id`
 - **Precedence (preserved)**: settings.php wins over config entities per scheme; the admin form warns when a settings.php definition shadows an entity.

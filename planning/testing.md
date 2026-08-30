@@ -6,8 +6,8 @@ Status: **Draft**. Companion: `architecture.md`, `feature-evaluation-log.md`, `d
 
 The module is not "done" until every behavioral decision in `architecture.md` is encoded as a regression test, runnable in CI with **no external network**, plus an integration layer against Floci-emulated AWS. Two layers:
 
-1. **Contract layer** — fast, deterministic kernel tests. Real adapter code (no mocks for adapter behavior), no network, no disk.
-2. **Integration layer** — kernel tests running the **real** S3 adapter against **Floci-emulated S3 + CloudFront**, locally (DDEV addon) and in the GitLab pipeline (Floci containers — confirmed allowed/supported with the testing team).
+1. **Contract layer** — fast, deterministic kernel tests. Real adapter code (no mocks for adapter behavior), no network, no disk. Core drivers (`in_memory`, `local`) are covered here.
+2. **Integration layer** — kernel tests running the **real** S3 adapter against **Floci-emulated S3 + CloudFront**, locally (DDEV addon) and in the GitLab pipeline (Floci containers — confirmed allowed/supported with the testing team). **These suites live in the optional submodules** (`flysystem_aws`, `flysystem_asyncaws`, `flysystem_sftpv3`) which own the S3/SFTP adapters; Core provides the shared Floci infrastructure. See `adapter-submodules.md`.
 
 ## 2. Test-driven development process (project-wide commitment)
 
@@ -47,14 +47,15 @@ The **Floci integration layer exercises seams 1–5 against real S3** — same a
 ## 4. Integration layer — Floci
 
 - Floci emulates **AWS S3 and CloudFront**.
-- **Local dev**: the DDEV addon (already in this project; local S3 endpoint `floci-aws-4566`). The `aws_s3` driver's endpoint/path-style override (#3618527) is required for this and is a shipped feature.
+- **Local dev**: the DDEV addon (already in this project; local S3 endpoint `floci-aws-4566`). The `aws_s3` driver's endpoint/path-style override (#3618527) is required for this and is a shipped feature of the `flysystem_aws` submodule.
 - **CI**: Floci Docker containers in the GitLab pipeline.
+- **Submodule ownership (carve-out, 2026-08-30):** the S3-specific integration suites live in the `flysystem_aws_s3` / `flysystem_s3` submodules (which own the adapters), consuming shared Floci infrastructure from Core. Core's own Floci tests cover only the Core drivers. See `adapter-submodules.md`.
 - Exercises what mocks can't: real PUT/GET/HEAD round trips, multipart upload behavior, visibility/ACL semantics, presigned URL generation, `public_url_base`/CloudFront URLs end-to-end, and stat fabrication against real S3 `lastModified`/`size` metadata.
 - **ACL-disabled bucket scenario**: the integration suite must cover the modern BucketOwnerEnforced bucket (any ACL → failure) to prove the `use_acl = false` subclassed-adapter path works.
 
 ## 5. Pain-map acceptance suite (the regression-prevention list)
 
-Each item in `architecture.md` §4–§7 gets a named test (primarily contract layer; S3-specific ones in the Floci layer). Each is a **red test first** per §2:
+Each item in `architecture.md` §4–§7 gets a named test (primarily contract layer; S3-specific ones in the Floci layer). Each is a **red test first** per §2. S3-specific rows (visibility/ACL, mime Content-Type, checksum ETag, Floci ACL-disabled) execute in the submodules' suites; Core keeps the driver-agnostic rows. See `adapter-submodules.md`.
 
 | Behavior | Test |
 |---|---|
@@ -114,7 +115,7 @@ Phase milestones derived from the design's dependency structure. **Every phase s
 - **M0 — Design freeze & project setup**: planning docs approved; GitHub repo + seeded issue backlog; CI skeleton. Exit: docs approved, issues created.
 - **M1 — Foundation**: module skeleton, composer deps (`league/flysystem` v3, `flysystem-read-only`, `drupal/key`), `core ^11.4 || ^12` + PHP 8.4 (D12 leg raises to 8.5 — #72; corrected 2026-08-29 per `independent-plan-review.md` B), the adapter plugin system + dynamic schema, config-entity + settings.php parsing, tagged-service registration, the **decorated `stream_wrapper_manager`**, connection test. Exit: a configured scheme resolves through the decorated manager — kernel test proves a remapped `public://` resolves to the flysystem wrapper.
 - **M2 — The contract-faithful wrapper** (the center of gravity): stat layer, `realpath()` FALSE, `getType()`, URL policy, single-PUT write path, seekable reads, stat-cache + invalidation, temp-local, `getDirectoryPath`/`deleteRecursive` handling, exception strategy. Exit: the pain-map contract tests pass against the in-memory fixture.
-- **M3 — Adapter hardening & integrations**: `use_acl`/visibility/read-only enforcement, mime-on-write, GD + ImageMagick verification, image-style routes, checksum API. Exit: GD and ImageMagick staging work with a remote scheme; Floci integration tests pass for visibility/ACL/URLs.
+- **M3 — Adapter hardening & integrations**: `use_acl`/visibility/read-only enforcement, mime-on-write, GD + ImageMagick verification, image-style routes, checksum API. The S3/SFTP adapters ship as optional submodules (`adapter-submodules.md`); the S3-specific portions of visibility/`use_acl`/mime/checksum/ACL-disabled land in the submodules' suites. Exit: GD and ImageMagick staging work with a remote scheme; Floci integration tests pass for visibility/ACL/URLs in the submodules.
 - **M4 — Test hardening & CI**: full two-layer suite in the GitLab pipeline (Floci containers), 3.0 regression-prevention coverage, D11.4 + D12 matrix. Exit: CI green on both majors; the `drupal-issue-queue.md` regression list is covered. (D12 matrix #72 must complete before the 4.0 release #36 — reordered 2026-08-29 per `independent-plan-review.md` C4.)
 - **M5 — Migration submodule**: MountManager engine, walk/progress/conflict/verification, drush, tests. Exit: local→S3 migration verified against Floci; checksum verification proven.
 - **M6 — Release**: upgrade guide + BC-break documentation, adapter-plugin developer README, config-and-upgrade verification, 4.0 release.
