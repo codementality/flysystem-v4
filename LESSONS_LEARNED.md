@@ -1,5 +1,17 @@
 # Lessons Learned
 
+## Session: M2 completion — board item-ID mixup (2026-08-31)
+
+### [BOARD_ITEM_ID_MIXUP_MOVED_WRONG_TICKET] — 2026-08-31
+
+- **Problem**: Moving #118 on the board, I used the wrong Projects-v2 item ID (`PVTI_…tkEY`, which is **#110's** item) instead of #118's real item (`PVTI_…t2Mc`). Result: #118 never left "Ready" (its In progress → In review → Done moves all targeted #110's item), while #110 (a valid M3 ticket) was dragged to Done and its ISSUE was auto-closed. The user caught it ("Why was #118 moved back to Ready?").
+- **Root cause**: The opaque base64 item IDs look alike; I copied the ID from the wrong earlier command output instead of fetching it fresh for the ticket being moved. Board-mutation responses return the item ID, not the ticket number, so a mixup is invisible in the success output.
+- **Failure type**: `ASSUMPTION_ERROR` (assumed the ID I pasted belonged to the ticket I was moving) — mechanical, but consequential (a valid ticket was closed).
+- **Solution** (BINDING): Before every board move, resolve the item ID **fresh** from a query keyed by the ISSUE NUMBER (`content.number`), never from memory or an earlier output. After any board mutation, **verify**: re-read the moved item and confirm its `content.number` is the intended ticket (the board-mutation success output only echoes the item ID — it cannot validate the target). Fix pattern: on a mixup, reopen the wrongly-closed issue and restore it to its correct column.
+- **Category**: other (board protocol)
+- **Applies to**: every board mutation via GraphQL; every session
+- **Suggested improvement**: encoded in `docs/agents/board.md` "Board mutation protocol" (dry-run + verify-by-content-number).
+
 ## Session: M2 — T# board column protocol correction (2026-08-30)
 
 ### [T_NUMBER_GOES_TO_IN_REVIEW_NOT_TESTS_COMPLETE_FAILING] — 2026-08-30 — READ THIS FIRST

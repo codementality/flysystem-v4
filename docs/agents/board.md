@@ -74,7 +74,13 @@ the wrong ticket). Before any bulk status/label change:
 
 1. **Fetch fresh state** immediately before operating (never reuse a previously captured
    snapshot — it goes stale the moment another mutation lands).
-2. **Dry-run**: compute the expected change-set (ticket → status/label) and present it for
+2. **Resolve item IDs fresh, keyed by issue number** — query `items` for the issue's `content.number`
+   and take its `id` in the SAME step you plan to move it. Never reuse an item ID from memory or an
+   earlier command output (IDs are opaque base64 and a mixup is invisible in the mutation's success
+   echo — the response returns only the item ID, not the ticket number).
+3. **Dry-run**: compute the expected change-set (ticket → status/label) and present it for
    approval before executing.
-3. **Apply**, then **re-read** the board and verify the result matches the expected
-   change-set exactly. Resolve item IDs from the fresh read, not from memory.
+4. **Apply**, then **re-read** the board and verify the result matches the expected
+   change-set exactly — including that each moved item's `content.number` is the intended ticket
+   (a mixup drags the WRONG issue; on a Done move it may also auto-close that issue — reopen and
+   restore it if caught). Resolve item IDs from the fresh read, not from memory.

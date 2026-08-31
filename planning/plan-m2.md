@@ -31,7 +31,7 @@ S3/SFTP adapters to submodules (M4–M6) and kept the Core driver set at `in_mem
 
 ---
 
-## 2. Execution status (2026-08-30)
+## 2. Execution status (2026-08-31 — M2 work complete; awaiting independent review)
 
 ### 2.1 Completed and closed (green, reviewed, on board Done)
 
@@ -50,18 +50,23 @@ S3/SFTP adapters to submodules (M4–M6) and kept the Core driver set at `in_mem
 | #16 / T16 (#53) | Exception strategy — wrapper `reportFailure()` (watchdog operation/location/reason + `trigger_error()`, never throws); mount failures → `InvalidStreamWrapperException` |
 | #73 / T73 (#90) | Full-scheme in-memory test path — native `scheme://` ops through the registered wrapper (settings.php + config entity + precedence); **no additional work** — delivered by earlier slices (#3/#5/#6/#7/#74/#79/#11/#12/#8); tests added as green coverage (board.md step 5) |
 | #81 / T81 (#87) | Private file-download route — `FlysystemRouteSubscriber` swaps the `system.files` controller; `PrivateDownloadController` probes private flysystem schemes, streams from the adapter (Range/206, `hook_file_download`), delegates to core `private://`. No URL change |
+| #111 | Unit tests — `AdapterDefinition` value object (`tests/src/Unit/Flysystem/`) incl. `getVisibility()` derivation |
+| #112 | Unit tests — `FlysystemFilesystemConstraintViolationList` (`hasField()` property-path matching) |
+| #113 | Unit tests — `FlysystemAdapter` plugin attribute |
+| #115 | PrivateDownloadRouteTest — core `private://` delegation regression guard |
+| #116 | PrivateDownloadRouteTest — `hook_file_download` deny → 403 |
+| #117 | PrivateDownloadRouteTest — missing object → 404 |
+| #118 | PrivateDownloadRouteTest — public scheme excluded from the private route |
 
-### 2.2 In flight (not yet approved)
+### 2.2 In flight
 
 | Ticket | Status | Notes |
 |---|---|---|
-| *(none)* | — | All M2 green phases are approved and on the board Done. Remaining M2: unit-test coverage (#111–#113) + private-download follow-ups (#115–#118). M2 exit criterion pending #111–#118. |
+| *(none)* | — | All M2 tickets are approved and on the board Done (green phases #8–#16/#80/#81, unit tests #111–#113, follow-ups #115–#118). M2 exit criterion met (all §8 tickets Done). **M2 not yet FINALIZED:** awaiting the user's final review + an independent project & code review (user, 2026-08-31); resulting tickets filed to Backlog before M2 is called complete. Coverage tooling (#114, M0) and the @todo triage (#119/#120, M3) are also done/flagged. |
 
-### 2.3 Open, not started
+### 2.3 Open
 
-| Feature | T# (red) | Board | Notes |
-|---|---|---|---|
-| #81 Private file-download route | #87 T81 | Backlog / Ready | T81 red complete, awaiting review (In review, 2026-08-31) |
+*(none — all M2 tickets Done; the @todo triage surfaced #119/#120, now M3/Backlog.)*
 
 ---
 
