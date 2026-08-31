@@ -69,6 +69,10 @@ composer.lock
 ed*
 flysystem-3.0-ref
 .phpunit.*.cache
+.phpunit*.cache
 screenshots/
 web/modules/custom/flysystem
+/private-files
 .scratchpad/
+codecov/
+.DS_Store

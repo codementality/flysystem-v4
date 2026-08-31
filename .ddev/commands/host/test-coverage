@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+## Description: Runs a test coverage report
+## Usage: test-coverage
+## Example: "ddev test-coverage"
+
+rm -Rf codecov
+ddev xdebug on
+ddev phpunit-coverage
+ddev xdebug off

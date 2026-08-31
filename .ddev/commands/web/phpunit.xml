@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Project-level PHPUnit config for on-demand test coverage of the flysystem
+     module. NOT used by the default "ddev phpunit" run (that uses Drupal core's
+     phpunit.xml.dist). Use "ddev phpunit-coverage" to generate a coverage
+     report; it requires Xdebug or PCOV enabled (ddev xdebug on).
+     Absolute paths: this file lives in .ddev/commands/web/, not at the project
+     root. -->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         bootstrap="/var/www/html/web/core/tests/bootstrap.php"
+         colors="true"
+         beStrictAboutTestsThatDoNotTestAnything="true"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
+         cacheResult="false"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
+         cacheDirectory="/var/www/html/.phpunit.cache">
+  <php>
+    <ini name="error_reporting" value="32767"/>
+    <ini name="memory_limit" value="-1"/>
+    <env name="SIMPLETEST_BASE_URL" value="http://web"/>
+    <env name="SIMPLETEST_DB" value="mysql://db:db@db/test"/>
+  </php>
+  <testsuites>
+    <testsuite name="flysystem-unit">
+      <directory>/var/www/html/web/modules/custom/flysystem/tests/src/Unit</directory>
+    </testsuite>
+    <testsuite name="flysystem-kernel">
+      <directory>/var/www/html/web/modules/custom/flysystem/tests/src/Kernel</directory>
+    </testsuite>
+    <testsuite name="flysystem-functional">
+      <directory>/var/www/html/web/modules/custom/flysystem/tests/src/Functional</directory>
+    </testsuite>
+  </testsuites>
+  <source>
+    <include>
+      <directory>/var/www/html/web/modules/custom/flysystem/src</directory>
+    </include>
+  </source>
+</phpunit>

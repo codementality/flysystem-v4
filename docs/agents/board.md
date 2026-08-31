@@ -16,19 +16,20 @@ board mutation. The board is the visual workflow; the issue tracker (and its
 | Needs triage | Awaiting a human decision/triage. Tickets here may carry `needs-triage` + `needs-human` labels and, once decided, a `decision-made` label. |
 | Ready | Unblocked and startable — every `blocked_by` ticket has **started** (even if not yet closed). |
 | In progress | Being worked. |
-| In review | Work complete, awaiting independent review/approval. |
-| Tests complete, failing | **Red-test ticket (T#) terminal state.** The ticket's sole purpose — writing tests designed to FAIL in preparation for an implementation ticket — is complete: the tests are authored and failing (red). The ticket sits here while its implementation ticket makes those tests green. This is NOT "done": it unblocks the implementation ticket to start (the red state satisfies the blocking edge for starting), and both tickets move to Done together once the tests pass. |
+| In review | Work complete, awaiting independent review/approval. **A test-only T# ticket sits here once its red tests are authored and verified** — the user reviews the failing tests here, BEFORE they move to Tests complete, failing. |
+| Tests complete, failing | **Red-test ticket (T#) post-approval state.** The red tests are authored, verified failing, AND **approved by the user** (reviewed in In review). The ticket sits here while its implementation ticket makes those tests green. This is NOT "done": the red state satisfies the blocking edge for starting the implementation ticket, and both tickets move to Done together once the tests pass. |
 | Done | Closed — dependencies done, reviewed, and closed. A T# ticket reaches Done when its tests are green (either immediately, or via the Tests complete, failing column then green). |
 
 ## The two-ticket test/implementation dance
 
 A feature ticket and its red-test ticket work as a pair:
 
-1. **T#** writes failing tests → **Tests complete, failing** (not Done).
-2. **The implementation ticket starts** — the red state satisfies its blocking edge for *starting* (it does not need T# to be Done to begin).
-3. Implementation makes the tests green.
-4. **Both move to Done** — T# because its tests pass, the implementation because its work is complete and reviewed. This unblocks anything depending on either.
-5. If a T# ticket's tests are already green when its turn arrives (e.g. the work was folded into an earlier slice), it goes **straight to Done** — the "Tests complete, failing" column is only for genuinely red tests awaiting implementation.
+1. **T#** writes failing tests → **In review** (awaiting the user's review of the authored red tests).
+2. **User approves the red tests** → T# moves to **Tests complete, failing** (not Done).
+3. **The implementation ticket starts** — the approved red state satisfies its blocking edge for *starting* (it does not need T# to be Done to begin).
+4. Implementation makes the tests green.
+5. **Both move to Done** — T# because its tests pass, the implementation because its work is complete and reviewed. This unblocks anything depending on either.
+6. If a T# ticket's tests are already green when its turn arrives (e.g. the work was folded into an earlier slice), it goes **straight to Done** — the "Tests complete, failing" column is only for genuinely red tests awaiting implementation.
 
 ## The dependency rule
 

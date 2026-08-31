@@ -42,25 +42,26 @@ S3/SFTP adapters to submodules (M4–M6) and kept the Core driver set at `in_mem
 | #10 / T10 (#47) | URL policy (`getExternalUrl`) — `public_url_base`, presigned, encoding, no double-slash |
 | #11 / T11 (#48) | Write path — single PUT on flush, native same-adapter move, stat-cache invalidation |
 | #12 / T12 (#49) | Read path — seekable semantics, `stream_cast` consistency, buffered remote reads |
+| #13 / T13 (#50) | Persistent stat cache — cache bin + TTL + explicit invalidation (mutations clear PHP stat cache + module entries) |
+| #98 / T12a# | `stream_stat()`/`fstat` — buffer-aware fabricated stat consistent with `url_stat` §4.1 |
+| #80 / T80 (#86) | Decorated `file_system` service — operator-direct `saveData`/`copy`/`move`/`delete`/`deleteRecursive`, boundary-2 exception mapping, `#3559132` fix |
+| #14 / T14 (#51) | `temporary://` stays local — reserved-scheme exclusion in `FilesystemFactory` |
+| #15 / T15 (#52) | Local-path contract — wrapper `getDirectoryPath()` (FALSE for remote), `dirname()` string, decorated `file_system->tempnam()` routes remote to `temporary://` |
+| #16 / T16 (#53) | Exception strategy — wrapper `reportFailure()` (watchdog operation/location/reason + `trigger_error()`, never throws); mount failures → `InvalidStreamWrapperException` |
+| #73 / T73 (#90) | Full-scheme in-memory test path — native `scheme://` ops through the registered wrapper (settings.php + config entity + precedence); **no additional work** — delivered by earlier slices (#3/#5/#6/#7/#74/#79/#11/#12/#8); tests added as green coverage (board.md step 5) |
+| #81 / T81 (#87) | Private file-download route — `FlysystemRouteSubscriber` swaps the `system.files` controller; `PrivateDownloadController` probes private flysystem schemes, streams from the adapter (Range/206, `hook_file_download`), delegates to core `private://`. No URL change |
 
 ### 2.2 In flight (not yet approved)
 
 | Ticket | Status | Notes |
 |---|---|---|
-| #98 / T12a# | **Tests complete, failing** | Red phase for `stream_stat()`/`fstat` — 5 tests, all red, approved by user 2026-08-30. |
-| #99 | **In progress** | Green phase: `stream_stat()` implemented (buffer-aware fabricated stat consistent with `url_stat` §4.1). **Code is UNCOMMITTED in the workspace; NOT accepted by the user yet.** QA (canonical `.ddev/commands/web/*`): phpunit OK (90 tests), phpcs 0, phpstan OK. `floci-check` FAIL — but Floci is submodule-testing-only (Core knows nothing of it, decision 2026-08-30), so it does not gate Core work. |
+| *(none)* | — | All M2 green phases are approved and on the board Done. Remaining M2: unit-test coverage (#111–#113) + private-download follow-ups (#115–#118). M2 exit criterion pending #111–#118. |
 
 ### 2.3 Open, not started
 
 | Feature | T# (red) | Board | Notes |
 |---|---|---|---|
-| #13 Persistent stat cache | #50 T13 | Backlog / Ready | T13 unblocked (0 open blockers) |
-| #14 `temporary://` stays local | #51 T14 | Backlog / Ready | T14 unblocked |
-| #15 Local-path contract | #52 T15 | Backlog / Ready | T15 unblocked |
-| #16 Exception strategy | #53 T16 | Backlog / Ready | T16 unblocked |
-| #73 Full-scheme in-memory test path | #90 T73 | Backlog / Ready | T73 unblocked |
-| #80 Decorated `file_system` service | #86 T80 | Backlog / Ready | T80 unblocked |
-| #81 Private file-download route | #87 T81 | Backlog / Ready | T81 unblocked |
+| #81 Private file-download route | #87 T81 | Backlog / Ready | T81 red complete, awaiting review (In review, 2026-08-31) |
 
 ---
 
@@ -104,41 +105,53 @@ invalidation on every mutation. Closed.
 ### Slice 5 — #12 Read path — **DONE**
 Seekable buffered reads (§4.5), `stream_cast` consistency, honest eof/tell. Closed.
 
-### Slice 6 — #98/#99 `stream_stat()`/`fstat` — **IN FLIGHT**
+### Slice 6 — #98/#99 `stream_stat()`/`fstat` — **DONE**
 Handle-based stat (the `fstat()` counterpart of `url_stat`). Red tests in
-`tests/src/Kernel/StreamStatTest.php` (5 tests, approved). Green implemented but **uncommitted /
-unapproved**. This slice closes the gap identified on #12 (no test pinned `stream_stat`).
+`tests/src/Kernel/StreamStatTest.php` (5 tests, approved). Green implemented and closed. This slice
+closed the gap identified on #12 (no test pinned `stream_stat`).
 
-### Slice 7 — #13 Persistent stat cache
+### Slice 7 — #13 Persistent stat cache — **DONE**
 Seam 5. Cache bin + TTL + explicit invalidation (mutations clear PHP stat cache + module entries).
 Architecture: `architecture.md` §4.6; TTL/`bin` decision recorded in `feature-evaluation-log.md`
-Item 2. Red: #50. Startable.
+Item 2. Red: #50. Closed.
 
-### Slice 8 — #14 `temporary://` stays local
+### Slice 8 — #14 `temporary://` stays local — **GREEN COMPLETE, IN REVIEW**
 Seam 1. `temporary://` never remaps to a remote adapter; aligned with core
-`FileSystem.php:647` / `PhpStorageFactory.php:49`. Red: #51. Startable.
+`FileSystem.php:647` / `PhpStorageFactory.php:49`. Red: #51 (Tests complete,
+failing, approved 2026-08-30). Green: reserved-scheme exclusion in
+`FilesystemFactory`. Uncommitted, awaiting review.
 
-### Slice 9 — #80 Decorated `file_system` service — **gate for #15/#16**
+### Slice 9 — #80 Decorated `file_system` service — **gate for #15/#16 — GREEN COMPLETE, IN REVIEW**
 Seam 3. Decorates `file_system` (`FileSystemInterface`): `copy`/`move`/`saveData`/`delete`/
 `getDestinationFilename`; flysystem→Drupal `FileException` mapping; `deleteRecursive` correctness
-(core #3559132 fix). Red: #86. Startable.
+(core #3559132 fix). Red: #86 (Tests complete, failing). Green uncommitted, awaiting user review;
+#15/#16 start once #80 is approved.
 
-### Slice 10 — #15 Local-path contract
+### Slice 10 — #15 Local-path contract — **DONE**
 Seam 3. `getDirectoryPath`, `tempnam`, `deleteRecursive` for remote schemes, routed around core's
-local-only assumptions (#3600726, #3611227, #3540678). Red: #52. Blocked by #80.
+local-only assumptions (#3600726, #3611227, #3540678). Red: #52. Green: wrapper `getDirectoryPath()`
+(FALSE for remote), `dirname()` string, decorated `file_system->tempnam()` routes remote to
+`temporary://`. Closed. `deleteRecursive` already green via #80's FileSystemSeamTest.
 
-### Slice 11 — #16 Exception strategy
+### Slice 11 — #16 Exception strategy — **DONE**
 Seam 3 + `architecture.md` §5 (three boundaries: wrapper never throws; decorated `file_system`
 translates to the 8 core `FileException` subclasses with `$previous`; CLI/admin one clean line).
-Red: #53. Blocked by #80.
+Red: #53. Green: wrapper `reportFailure()` (watchdog operation/location/reason +
+`trigger_error()`, never throws) in `stream_flush()`'s catch; `operatorForUri()` maps mount
+failures to `InvalidStreamWrapperException`. Closed.
 
-### Slice 12 — #81 Private file-download route
+### Slice 12 — #81 Private file-download route — **DONE**
 Seam 4. Streaming route + controller (Range/206, correct headers, cache metadata),
-`hook_file_download` access checks (#3618271). Red: #87. Startable.
+`hook_file_download` access checks (#3618271). Red: #87. Green: `FlysystemRouteSubscriber` swaps
+the `system.files` controller; `PrivateDownloadController` probes private flysystem schemes, streams
+from the adapter, delegates to core `private://`. No URL change. Closed. Follow-up test coverage:
+#115–#118.
 
-### Slice 13 — #73 Full-scheme in-memory test path
+### Slice 13 — #73 Full-scheme in-memory test path — **DONE (no additional work)**
 Seam 1+2. A configured scheme backed by the `in_memory` adapter through the `FilesystemFactory`
-(settings.php + config entity), exercised via the wrapper. Red: #90. Startable.
+(settings.php + config entity), exercised via the wrapper. Red: #90. **No green-phase work** — the
+full native path was delivered by #3/#5/#6/#7/#74/#79/#11/#12/#8; T73's tests pass green on
+arrival (board.md step 5) and add the missing end-to-end native coverage. Closed.
 
 **Slice order note:** the board's `blocked_by` edges, not this list, are authoritative for
 sequencing (`docs/agents/board.md`). This list documents *why* each slice is where it is.

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+## Description: Generate an on-demand PHPUnit test coverage report for the flysystem module (requires Xdebug or PCOV)
+## Usage: phpunit-coverage
+## Example: "ddev phpunit-coverage"
+
+set -e
+
+# Coverage requires a code-coverage driver (Xdebug or PCOV) loaded in the CLI.
+if ! php -m 2>/dev/null | grep -qiE 'xdebug|pcov'; then
+  echo "ERROR: No code-coverage driver (Xdebug or PCOV) is enabled in the web container." >&2
+  echo "On the host, run 'ddev xdebug on', then retry. ('ddev xdebug off' after.)" >&2
+  exit 1
+fi
+
+OUTPUT_DIR=/var/www/html/codecov
+mkdir -p "$OUTPUT_DIR"
+
+SIMPLETEST_DB=mysql://db:db@db/test SIMPLETEST_BASE_URL=http://web \
+  XDEBUG_MODE=coverage \
+  /var/www/html/vendor/bin/phpunit \
+    -c /var/www/html/.ddev/commands/web/phpunit.xml \
+    --coverage-html "$OUTPUT_DIR" \
+    /var/www/html/web/modules/custom/flysystem \
+  "$@"
+
+echo
+echo "Coverage report: $OUTPUT_DIR/index.html"

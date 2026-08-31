@@ -1,5 +1,17 @@
 # Lessons Learned
 
+## Session: M2 — T# board column protocol correction (2026-08-30)
+
+### [T_NUMBER_GOES_TO_IN_REVIEW_NOT_TESTS_COMPLETE_FAILING] — 2026-08-30 — READ THIS FIRST
+
+- **Problem**: After authoring #51's (T14) failing red tests and verifying them red, I moved the T# ticket straight to "Tests complete, failing" and reported it there. The user corrected me: a test-only T# ticket goes to **"In review"** when its red tests are authored; it does NOT go to "Tests complete, failing" until the user has REVIEWED and APPROVED the red tests. "Tests complete, failing" is the post-approval state that unblocks the implementation ticket.
+- **Root cause**: The existing `docs/agents/board.md` described "Tests complete, failing" as the T# terminal state after authoring — I followed the doc literally and missed that the user's review gate sits BETWEEN authoring and "Tests complete, failing". The board.md text itself was ambiguous/wrong and misled me.
+- **Failure type**: `ASSUMPTION_ERROR` (facts were right — the tests were red — the workflow step was wrong)
+- **Solution** (BINDING): T# authoring red tests → **In review** (awaiting user review). User reviews + approves → T# → **"Tests complete, failing"**. Then the implementation ticket starts; both move to Done together when green + approved. Encoded in: `AGENTS.md` governance rule 10 (sub-rule added 2026-08-30), `docs/agents/board.md` (column meaning + two-ticket dance corrected 2026-08-30).
+- **Category**: other (project governance / board protocol)
+- **Applies to**: every T# red-test ticket, every future session
+- **Suggested improvement**: re-read AGENTS.md rule 10's T# sub-rule at every T# completion point; a T# is "delivered" only when it sits in In review with a notification to the user.
+
 ## Session: M1 execution failure — trust destroyed (2026-08-28)
 
 ### [FIRABLE_OFFENSE_UNILATERAL_EXECUTION] — 2026-08-28 — READ THIS FIRST
