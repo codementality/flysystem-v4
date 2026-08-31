@@ -72,18 +72,11 @@ S3/SFTP adapters to submodules (M4–M6) and kept the Core driver set at `in_mem
 
 ## 3. Dependency graph (M2-relevant)
 
-Edges verified 2026-08-30 via `issue_dependencies_summary`:
-
-- **#13/#14/#73** `blocked_by` closed M1 foundation (#1/#2/#37 + fixture/entity) — startable now.
-- **#15/#16** `blocked_by` #80 (decorated `file_system`) + closed M1 — must wait for #80's green.
-- **#80** `blocked_by` closed M1 only — startable now.
-- **#81** `blocked_by` #10 (URL policy, closed) + closed M1 — startable now.
-- **#98 → #99** (red → green chain, both M2). #99 `blocked_by` #98.
-- **#86/#87/#90** (T#s) unblocked (0 open blockers) → Ready.
-
-The two-ticket dance per `docs/agents/board.md`: each feature starts once its T# is red
-("Tests complete, failing" satisfies the blocking edge for starting); both move to Done together
-when the tests turn green and are approved.
+All M2 dependencies are resolved: every M2 ticket (#8–#16, #73, #80, #81, #98/#99, and the T#s
+#45–#53/#86/#87/#90) is closed and in the board's Done column, matching §2.1. The two-ticket dance
+per `docs/agents/board.md` held throughout — a strict T# red → feature green alternation. Per the
+milestone-immutability rule (user, 2026-08-30), M2 tickets stay closed; the independent review's
+boundary defects were filed as new M3 tickets (#130–#138).
 
 ---
 
@@ -91,6 +84,9 @@ when the tests turn green and are approved.
 
 Per `testing.md` §2 (vertical slices, one seam at a time). The seam is the boundary named in
 `testing.md` §2; the red test is authored first; only enough code to pass is written.
+
+> **Historical (2026-08-31):** all slices are complete and closed. §4 is kept for the record; the
+> board's `blocked_by` edges are authoritative for current sequencing.
 
 ### Slice 1 — #8 Stat layer (`url_stat`) — **DONE**
 Seam 1 (stream wrapper). Fabricated stats, `realpath()` FALSE, private other-read bit, no
@@ -120,17 +116,15 @@ Seam 5. Cache bin + TTL + explicit invalidation (mutations clear PHP stat cache 
 Architecture: `architecture.md` §4.6; TTL/`bin` decision recorded in `feature-evaluation-log.md`
 Item 2. Red: #50. Closed.
 
-### Slice 8 — #14 `temporary://` stays local — **GREEN COMPLETE, IN REVIEW**
+### Slice 8 — #14 `temporary://` stays local — **DONE**
 Seam 1. `temporary://` never remaps to a remote adapter; aligned with core
-`FileSystem.php:647` / `PhpStorageFactory.php:49`. Red: #51 (Tests complete,
-failing, approved 2026-08-30). Green: reserved-scheme exclusion in
-`FilesystemFactory`. Uncommitted, awaiting review.
+`FileSystem.php:647` / `PhpStorageFactory.php:49`. Red: #51. Green: reserved-scheme exclusion in
+`FilesystemFactory`. Closed.
 
-### Slice 9 — #80 Decorated `file_system` service — **gate for #15/#16 — GREEN COMPLETE, IN REVIEW**
+### Slice 9 — #80 Decorated `file_system` service — **DONE**
 Seam 3. Decorates `file_system` (`FileSystemInterface`): `copy`/`move`/`saveData`/`delete`/
 `getDestinationFilename`; flysystem→Drupal `FileException` mapping; `deleteRecursive` correctness
-(core #3559132 fix). Red: #86 (Tests complete, failing). Green uncommitted, awaiting user review;
-#15/#16 start once #80 is approved.
+(core #3559132 fix). Red: #86. Green committed; #15/#16 shipped after approval. Closed.
 
 ### Slice 10 — #15 Local-path contract — **DONE**
 Seam 3. `getDirectoryPath`, `tempnam`, `deleteRecursive` for remote schemes, routed around core's

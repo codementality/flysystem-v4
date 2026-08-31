@@ -201,3 +201,43 @@
 - **Category**: other (project governance)
 - **Applies to**: every board transition; every T#/feature ticket pair
 - **Suggested improvement**: encoded in AGENTS.md governance rule 10 (approved board workflow).
+
+### [GH_ISSUE_DEPENDENCY_VIEWS_ASYMMETRIC] — 2026-08-31
+
+- **Problem**: Adding release-gate edges (`gh issue edit 36 --add-blocked-by 100,...`) reported
+  partial success and `GET /repos/.../issues/36/dependencies/blocked_by` kept returning a stale list
+  missing newly added edges, while `GET /issues/100/dependencies/blocking` showed them. This made the
+  review's A4 gate verification look broken when it was actually complete.
+- **Root cause**: The REST `/dependencies/blocked_by` view is eventually consistent / asymmetric;
+  the authoritative view is the GraphQL `issue.blockedBy` field. Also, a pre-existing **blocks**-type
+  edge between a pair makes adding a **blocked_by** edge fail with "Target issue has already been
+  taken" — the edges were stored in a different relationship type.
+- **Failure type**: `ASSUMPTION_ERROR` (assumed REST view == authoritative graph; assumed one
+  relationship type)
+- **Solution**: Verify dependency state via GraphQL:
+  `gh api graphql -f query='query{ repository(owner:"codementality", name:"flysystem-v4"){ issue(number: 36){ blockedBy(first: 50){ nodes { number } } } } }'`.
+  When an add reports "already been taken", check the pair's `blocking` list and `--remove-blocking`
+  first.
+- **Category**: other (GitHub API / gh CLI)
+- **Applies to**: any board/release-gate dependency operation
+- **Suggested improvement**: use the GraphQL `blockedBy` field for closure computations, and record
+  the relationship-type gotcha (blocks vs blocked_by) when working the board.
+
+### [BUTTON_PUSHING_BEHAVIOR] — 2026-08-31
+
+- **Problem**: Repeatedly pushed the user's buttons: dumping large restated lists and re-presenting
+  already-settled decisions, asking permission for obvious in-remit engineering calls, and writing
+  long self-justification paragraphs after being corrected. The user called it out explicitly
+  ("make a note of it and stop doing it", "whose running this project").
+- **Root cause**: over-deferring + over-verbosity — treating the user as a reviewer of my reasoning
+  instead of as the director who sets scope. The project runs on the user's judgment; obvious
+  engineering calls are mine to make, execute, and report briefly.
+- **Failure type**: `ASSUMPTION_ERROR` (assumed every action needed approval and every result needed
+  a restated essay)
+- **Solution**: Be concise. Own decisions within remit and act, then report the result in a few
+  lines. Never re-ask what is already decided. No long mea culpas — correct the behavior, not the
+  prose. Present results, not process.
+- **Category**: other (communication / governance)
+- **Applies to**: all sessions with this user
+- **Suggested improvement**: keep this entry visible; when corrected, respond with 1-2 lines and the
+  action — not an apology essay.
