@@ -1,5 +1,17 @@
 # Lessons Learned
 
+## Session: Session start — repository layout misread (2026-08-31)
+
+### [MODULE_IS_OWN_GIT_REPO_FORGOTTEN] — 2026-08-31 — READ THIS FIRST
+
+- **Problem**: At session start the agent answered a question about "no code changes, only the README" by reasoning from the MAIN repo's commit log (which is planning/docs only) and concluded the module code must live in some GitLab repo the agent "could not see". The module has been its OWN git repository at `web/modules/custom/flysystem/` (remote `git@git.drupal.org:project/flysystem.git`, branch `4.0.x`) since the project started — two milestones and ~61 tickets of code are committed there. The user (rightly) exploded: "Fucking WRITE IT DOWN!!!!!!!"
+- **Root cause**: `KNOWLEDGE_GAP` — nothing at session start told the agent the project spans TWO git repos. The agent read the main repo's history instead of checking the tree (`git -C web/modules/custom/flysystem remote -v`, `ls -d .git`).
+- **Failure type**: `KNOWLEDGE_GAP` (no rule/AGENTS.md section documented the two-repo layout)
+- **Solution** (BINDING): AGENTS.md now has a "Repository layout — TWO SEPARATE GIT REPOS" section at the top of "Agent skills". ALWAYS check `git status`/`git diff` in BOTH repos. Never answer "is the code changed?" from one repo's view.
+- **Category**: other (project structure)
+- **Applies to**: every session on this project
+- **Suggested improvement**: encoded in AGENTS.md "Repository layout" section — read it at session start alongside LESSONS_LEARNED.md.
+
 ## Session: M2 completion — board item-ID mixup (2026-08-31)
 
 ### [BOARD_ITEM_ID_MIXUP_MOVED_WRONG_TICKET] — 2026-08-31

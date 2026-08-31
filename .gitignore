@@ -75,4 +75,7 @@ web/modules/custom/flysystem
 /private-files
 .scratchpad/
 codecov/
+.ddev/.env
+.ddev/.env.*
+.ddev/.env.
 .DS_Store

@@ -1,0 +1,9 @@
+name: gh-cli
+repository: plopesc/ddev-gh-cli
+version: v1.1.0
+install_date: "2026-08-31T16:17:55-04:00"
+project_files:
+    - docker-compose.gh-cli.yaml
+    - config.gh-cli.yaml
+global_files: []
+removal_actions: []

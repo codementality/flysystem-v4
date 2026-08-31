@@ -29,6 +29,19 @@
     - Applies to testing gaps AND scope gaps: e.g. "method X left as a stub with no test pinning it", "behavior Y untested on path Z", "ticket W does not cover requirement V".
     - The comment must restate the gap, say what is and isn't covered, and state the decision the user needs to make (e.g. "file a new T# + implementation pair" / "fold into ticket N").
 
+## Repository layout — TWO SEPARATE GIT REPOS (read this first)
+
+**This project spans two independent git repositories. Know which one you are in before any git command.**
+
+1. **Main repo** — `codementality/flysystem-v4` (this repo, branch `main`, GitHub). Contains ONLY planning/docs: `planning/`, `docs/`, `AGENTS.md`, `LESSONS_LEARNED.md`, `.ddev/`, `scripts/`, `config/`. It is the project-management shell (board + issues live here). **The module code is NOT here** — `.gitignore:74` excludes `web/modules/custom/flysystem`. Commit messages like "Updating after…" are the norm here.
+2. **Module repo** — `web/modules/custom/flysystem/` is its OWN git repository (it has its own `.git`, since the project started). Remote: `git@git.drupal.org:project/flysystem.git`. Branch: `4.0.x`. **ALL module code lives here** (`src/`, `tests/`, `config/`, `README.md`, `.gitlab-ci.yml`). All the milestones' code — M1 and M2, ~61+ closed tickets' worth — is committed in THIS repo.
+
+**Rules:**
+- **All module code work (code + tests) happens in the module repo** at `web/modules/custom/flysystem`. Run `git -C web/modules/custom/flysystem <cmd>` for anything about the code.
+- The main repo only ever gets docs/planning commits; never commit module code into the main repo.
+- When reporting "is the code changed?" or "git status", check **both** repos — the answer often differs.
+- Never guess which repo something lives in: verify with `git -C <path> remote -v` and `ls -d <path>/.git`.
+
 ## Agent skills
 
 ### Project board
