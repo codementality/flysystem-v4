@@ -29,7 +29,7 @@ A feature ticket and its red-test ticket work as a pair:
 3. **The implementation ticket starts** — the approved red state satisfies its blocking edge for *starting* (it does not need T# to be Done to begin).
 4. Implementation makes the tests green.
 5. **Both move to Done** — T# because its tests pass, the implementation because its work is complete and reviewed. This unblocks anything depending on either.
-6. If a T# ticket's tests are already green when its turn arrives (e.g. the work was folded into an earlier slice), it goes **straight to Done** — the "Tests complete, failing" column is only for genuinely red tests awaiting implementation.
+6. **There is NO "straight to Done" bypass for a T# (CORRECTED 2026-08-31, user directive — NON-NEGOTIABLE).** If a T#'s tests are already green when its turn arrives (the behavior already exists), they are still authored as regression pins and gated through the **T# review** (In review → user approval → Tests complete, failing → implementation). A T# never goes straight to Done. This revokes the earlier step-6 language that allowed it.
 
 ## The dependency rule
 
@@ -39,6 +39,7 @@ A feature ticket and its red-test ticket work as a pair:
   remove `dependency-blocked`, move to **Ready** (or Backlog/Needs triage as appropriate).
   It can start even though it cannot *finish* until the blocker closes.
 - When a blocker **closes**, the dependent ticket can proceed toward Done.
+- **Consumer-chain trace on pull** (added 2026-08-31 after #54/#17/#78): Ready only proves a ticket's OWN blockers are started. Before pulling any ticket to In progress, inspect the ticket it feeds (a T#'s implementation ticket) and confirm no OTHER blocker of that consumer is unstarted — otherwise the pulled ticket's output idles (approved but unconsumable). Work the deepest unstarted blocker first.
 - **Never move a ticket directly from Backlog to Done** — always the in-between steps
   (Ready → In progress → In review → Done).
 

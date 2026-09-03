@@ -14,12 +14,14 @@ independent project review.
 
 ## 1. M3 goal and boundary
 
-M3 hardens the adapter surface and integrations. The Core module ships **two** adapter drivers
-(`in_memory`, `local`); the three SDK adapters (`aws_s3`, `s3`, `sftp`) are optional submodules
-(M4–M6, per `adapter-submodules.md` §1). M3's scope is the driver-agnostic hardening plus the two
-Core drivers and the integrations that depend on them.
+M3 hardens the adapter surface and integrations. The Core module ships **one** adapter driver
+(`local` — the adapter that ships with League\Flysystem by default); the three SDK adapters (`aws_s3`,
+`s3`, `sftp`) are optional submodules (M4–M6, per `adapter-submodules.md` §1), and `in_memory` is a
+dev-only test fixture (`league/flysystem-memory` lives in `require-dev`), not a Core-shipped driver.
+M3's scope is the driver-agnostic hardening plus the one Core driver and the integrations that depend
+on it.
 
-**In M3:** Core adapter drivers `in_memory` + `local` (#78), Core visibility strategy (#17 — scheme-
+**In M3:** Core adapter driver `local` (#78), Core visibility strategy (#17 — scheme-
 derived visibility + `directory_visibility` private), read-only enforcement (#18 — existing `writable`
 flag), mime-on-write (#19 — Core passes Drupal's guessed mime), GD staging (#20), ImageMagick staging
 (#21), image-style routes (#22), checksum API (#23 — streaming MD5), AJAX driver-swap on the add form
@@ -50,7 +52,7 @@ All M3 tickets are **Backlog / Ready** on the board; nothing has been started. T
 
 | Feature | T# (red) | Blocked by | Notes |
 |---|---|---|---|
-| #78 Core adapter drivers (`in_memory` + `local`) | #89 T78 | T78 | The M3 gate. Move `in_memory` from the test fixture into `src/`; new `local` driver; Core schema fragments + config forms |
+| #78 Core adapter driver (`local`) | #89 T78 | T78 | The M3 gate. New `local` driver in Core `src/`; Core schema fragment + config form. (`in_memory` stays a dev-only test fixture.) |
 | #17 Visibility (Core) | #54 T17 | #78 | Scheme-derived visibility + `directory_visibility` private; S3 `use_acl` portion → submodules |
 | #18 Read-only enforcement | #55 T18 | — | Uses the existing `writable` flag (ReadOnlyFilesystemAdapter wrapper) — **startable before #78** |
 | #19 Mime-on-write | #56 T19 | #78 | Core passes Drupal's guessed mime as adapter write config |
@@ -83,8 +85,14 @@ Edges verified 2026-08-31 via GraphQL `blockedBy`:
 
 The two-ticket dance per `docs/agents/board.md`: each feature starts once its T# is red
 ("Tests complete, failing" satisfies the blocking edge for starting); both move to Done together
-when the tests turn green and are approved. (Coverage-only tickets like #119/#120/#108–#110 go
-straight to Done when green — board.md step 5.)
+when the tests turn green and are approved.
+
+**CORRECTED 2026-08-31 (user directive — NON-NEGOTIABLE): there is NO "coverage-only" exception.**
+TDD applies to EVERY feature ticket: a T# red-test ticket is authored first, reviewed by the user,
+then the implementation makes it green. #108, #119 and #120 must each get a T# ticket retroactively —
+the earlier text that said "coverage-only tickets like #119/#120/#108–#110 go straight to Done when
+green" was WRONG and is revoked. A green T# at authoring time is still authored (as a regression pin)
+and gated through the T# review; it never bypasses the gate.
 
 ---
 
@@ -93,11 +101,12 @@ straight to Done when green — board.md step 5.)
 Per `testing.md` §2 (vertical slices, one seam at a time). The seam is the boundary named in
 `testing.md` §2; the red test is authored first; only enough code to pass is written.
 
-### Slice 1 — #78 Core adapter drivers (`in_memory` + `local`) — **THE M3 GATE**
-Move `in_memory` from the test fixture into `src/Plugin/Flysystem/Adapter/` (production driver,
-REMOTE classification preserved), new `local` driver (`league/flysystem-local`, TYPE_LOCAL, `root`
-config key, supportsVisibility TRUE), Core schema fragments (`flysystem.adapter_config.in_memory` /
-`.local`), config forms. Red: #89 (T78). Most of M3 chains behind this slice.
+### Slice 1 — #78 Core adapter driver (`local`) — **THE M3 GATE**
+New `local` driver in Core `src/Plugin/Flysystem/Adapter/` (`league/flysystem-local`, TYPE_LOCAL,
+`root` config key required, supportsVisibility TRUE), Core schema fragment
+(`flysystem.adapter_config.local`), config form. The `in_memory` driver stays a dev-only test fixture
+in `flysystem_inmemory_test` (`league/flysystem-memory`, in `require-dev`); it is NOT moved into Core.
+Red: #89 (T78). Most of M3 chains behind this slice.
 
 ### Slice 2 — #17 Visibility (Core)
 Scheme-derived visibility (`public://`-type → Visibility::PUBLIC, private → PRIVATE) passed as write

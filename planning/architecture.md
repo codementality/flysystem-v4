@@ -8,13 +8,15 @@ Status: **Draft** — derived from the design discussion (2026-08). Companion do
 
 Provide an **opt-in replacement layer** for Drupal Core's filesystem and stream-wrapper functionality. A site that configures a scheme (via settings.php or config entities) gets flysystem-backed storage; core schemes (`public://`, `private://`, `temporary://`) are **remappable** to flysystem adapters, and new schemes are definable. Unconfigured schemes behave exactly as core.
 
-**Non-goals**: patching or rewriting Drupal Core. No backporting focus to v3 (byproducts only). Core ships two adapters (`in_memory`, `local`); three external-SDK adapters (`s3`, `aws_s3`, `sftp`) are optional submodules; third-party adapters are the community's responsibility. See `adapter-submodules.md` (the carve-out plan, 2026-08-30).
+**Non-goals**: patching or rewriting Drupal Core. No backporting focus to v3 (byproducts only). Core ships one adapter (`local` — the adapter that ships with League\Flysystem by default); `in_memory` is a dev-only test fixture, and the three external-SDK adapters (`s3`, `aws_s3`, `sftp`) are optional submodules; third-party adapters are the community's responsibility. See `adapter-submodules.md` (the carve-out plan, 2026-08-30).
 
 **Core constraint**: every flysystem service that replaces a core service **adheres to the existing core interface contract** (`StreamWrapperInterface`, `FileSystemInterface`, `StreamWrapperManagerInterface`), so contrib modules relying on those contracts continue to function.
 
 ## 2. Support boundary
 
-- **Core adapters (shipped, supported, built into Core)**: `in_memory`, `local`.
+- **Core adapter (shipped, supported, built into Core)**: `local`.
+- **Dev-only test fixture**: `in_memory` (`league/flysystem-memory`, in the module's `require-dev`),
+  shipped in the `flysystem_inmemory_test` fixture module, never in Core.
 - **Optional submodules (shipped with the project, enabled independently)**: `s3` (AsyncAws,
   `flysystem_asyncaws`), `aws_s3` (AWS SDK v3, `flysystem_aws`), `sftp` (`flysystem_sftpv3`). Each owns its
   driver plugin, schema, config form, and tests — Flysystem Core has zero prior knowledge of them.

@@ -6,7 +6,7 @@ Status: **Draft**. Companion: `architecture.md`, `feature-evaluation-log.md`, `d
 
 The module is not "done" until every behavioral decision in `architecture.md` is encoded as a regression test, runnable in CI with **no external network**, plus an integration layer against Floci-emulated AWS. Two layers:
 
-1. **Contract layer** — fast, deterministic kernel tests. Real adapter code (no mocks for adapter behavior), no network, no disk. Core drivers (`in_memory`, `local`) are covered here.
+1. **Contract layer** — fast, deterministic kernel tests. Real adapter code (no mocks for adapter behavior), no network, no disk. The Core `local` driver and the `in_memory` fixture are covered here.
 2. **Integration layer** — kernel tests running the **real** S3 adapter against **Floci-emulated S3 + CloudFront**, locally (DDEV addon) and in the GitLab pipeline (Floci containers — confirmed allowed/supported with the testing team). **These suites live in the optional submodules** (`flysystem_aws`, `flysystem_asyncaws`, `flysystem_sftpv3`) which own the S3/SFTP adapters; Core provides the shared Floci infrastructure. See `adapter-submodules.md`.
 
 ## 2. Test-driven development process (project-wide commitment)
@@ -15,7 +15,7 @@ The project adopts **TDD** and adheres to it — the design is already spec-firs
 
 **The loop**: red → green → (review). Write the failing test first, then only enough code to pass. Refactoring is not part of the loop — it belongs to code review.
 
-**Red-test tickets**: each feature has a test ticket (T#) whose sole deliverable is failing tests. Per the board model, T# sits in the **"Tests complete, failing"** column once its red tests are authored (its terminal state, NOT Done); the implementation ticket then starts (the red state satisfies the blocking edge for starting) and makes the tests green, after which **both** move to Done. If a T#'s tests are already green when its turn arrives, it goes straight to Done. See `docs/agents/board.md` "The two-ticket test/implementation dance".
+**Red-test tickets**: each feature has a test ticket (T#) whose sole deliverable is failing tests. Per the board model, T# sits in the **"Tests complete, failing"** column once its red tests are authored (its terminal state, NOT Done); the implementation ticket then starts (the red state satisfies the blocking edge for starting) and makes the tests green, after which **both** move to Done. **There is NO "straight to Done" bypass (CORRECTED 2026-08-31, user directive — NON-NEGOTIABLE):** if a T#'s tests are already green when its turn arrives, they are still authored as regression pins and gated through the T# review (In review → user approval → Tests complete, failing → implementation). See `docs/agents/board.md` "The two-ticket test/implementation dance".
 
 **Vertical slices, not horizontal.** One seam, one test, one minimal implementation per cycle. Never write the full test suite and then the implementation — a horizontal "all tests first" pass tests *imagined* behavior and commits to test structure before understanding the code. Each test is a tracer bullet that responds to what the last cycle taught.
 

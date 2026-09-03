@@ -27,7 +27,8 @@ service, and the private file-download route.
 **Not in M2:** visibility/`use_acl` (M3 + S3 submodules), read-only enforcement (M3), mime-on-write
 (M3), GD/ImageMagick staging (M3), image-style routes (M3), checksum API (M3), Floci integration
 (M7), migration (M8), release (M9). The adapter carve-out (`adapter-submodules.md`) moved the
-S3/SFTP adapters to submodules (M4–M6) and kept the Core driver set at `in_memory` + `local`.
+S3/SFTP adapters to submodules (M4–M6); Flysystem Core ships the `local` adapter only, and `in_memory`
+remains a dev-only test fixture.
 
 ---
 

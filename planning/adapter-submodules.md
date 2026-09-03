@@ -9,9 +9,13 @@ knowledge into Flysystem Core (documented in `LESSONS_LEARNED.md` as the v3 fail
 
 ## 1. The decision (user, 2026-08-30)
 
-**Flysystem Core ships exactly two adapter drivers, built into Core: `in_memory` and `local`.**
-The three external-SDK adapters become **optional submodules** shipped with the Flysystem project but
-only active when enabled:
+**Flysystem Core ships exactly ONE adapter driver, built into Core: `local`** (the adapter that ships
+with League\Flysystem by default — `league/flysystem` requires `league/flysystem-local`). Every other
+adapter requires adding a League\Flysystem library that does NOT ship with League\Flysystem by default,
+so it ships as an **optional submodule**, only active when enabled. The `in_memory` driver is a
+**dev-only test fixture** (`league/flysystem-memory` lives in the module's `require-dev`); it is NOT a
+Core-shipped adapter. The three external-SDK adapters become **optional submodules** shipped with the
+Flysystem project but only active when enabled:
 
 | Submodule | SDK | Driver plugin ID | Source adapter docs |
 |---|---|---|---|
@@ -37,17 +41,19 @@ third-party contrib adapter would, so the contract is proven by shipped code, no
 ### 2.1 What Flysystem Core contains (after the carve-out)
 
 - **Adapter drivers in `src/Plugin/Flysystem/Adapter/`:**
-  - `in_memory` — moved from the test fixture module into Core as a production driver
-    (engine `league/flysystem-memory`). REMOTE-type classification preserved (it exercises the
-    remote code paths in tests). Config keys: minimal/none.
-  - `local` — new production driver (engine `league/flysystem-local`). TYPE_LOCAL, `root` config key
-    (required), supportsVisibility TRUE. Real disk.
+  - `local` — the default and only Core-shipped driver (engine `league/flysystem-local`, which ships
+    with League\Flysystem by default). TYPE_LOCAL, `root` config key (required), supportsVisibility
+    TRUE. Real disk.
+- **The `in_memory` driver stays a dev-only test fixture** in `tests/modules/flysystem_inmemory_test/`
+  (engine `league/flysystem-memory`, which lives in the module's `require-dev`). It is NOT shipped in
+  Core. Its REMOTE-type classification exercises the remote code paths in tests.
 - **The plugin contract unchanged:** `AdapterDriverPluginBase`, `FlysystemAdapter` attribute,
   `AdapterDriverPluginManager`, dynamic schema `flysystem.adapter_config.[%parent.driver]`.
 - **Zero driver knowledge in the entity:** `SECRET_XOR_PAIRS` deleted; secret validation derived at
   runtime from the selected driver's `getConfigKeys()` `secret` markers (see §3).
 - **Core schema** (`config/schema/flysystem.schema.yml`) ships only
-  `flysystem.adapter_config.in_memory` and `flysystem.adapter_config.local`.
+  `flysystem.adapter_config.local`. The `in_memory` config fragment belongs to the test fixture
+  surface, not Core.
 - **Read-only enforcement lives in Core** (§7 of `architecture.md`) — it is a **wrapper around any
   available adapter**, never driver-specific: the configuration form carries a checkbox that sets the
   scheme's `writable` flag; on FALSE, `FilesystemFactory::buildAdapter()` wraps the built adapter in
@@ -60,8 +66,10 @@ third-party contrib adapter would, so the contract is proven by shipped code, no
     writable. **No new settings.php flag is added.** This resolves the earlier "additional default-
     FALSE flag" idea (withdrawn 2026-08-30 — the existing flag is the inverse of it).
 - **Core composer.json** requires only: `league/flysystem`, `league/flysystem-read-only`,
-  `league/flysystem-local`, `league/flysystem-memory`, `drupal/key`, `drush/drush`. The three SDKs
-  leave Core's require (see §4 packaging decision).
+  `league/flysystem-local`, `drupal/key`, `drush/drush`. `league/flysystem-memory` is in
+  `require-dev` (test fixture only). The three SDKs leave Core's require entirely — they belong to
+  the submodule packages, not Core (see §4 packaging decision). Keeping a library in Core's require
+  that Core never uses invites code to import it where it does not belong.
 
 ### 2.2 What each submodule contains
 
@@ -129,8 +137,8 @@ The submodules ship with the Flysystem project. Two viable composer arrangements
 
 | Ticket | Current scope | Re-scoped to | Notes |
 |---|---|---|---|
-| **#78** (M3) | "Shipped adapter drivers (local, s3, aws_s3, sftp)" | **Core adapter drivers (`in_memory`, `local`)** — plugin classes + config forms + Core schema fragments | s3/aws_s3/sftp removed from scope (become submodules). Add: move `in_memory` from test fixture into `src/`; new `local` driver. |
-| **#89** (T78) | red tests for the four drivers | red tests for `in_memory` + `local` only | s3/aws_s3/sftp red tests move to the submodule T# tickets. |
+| **#78** (M3) | "Shipped adapter drivers (local, s3, aws_s3, sftp)" | **Core adapter driver (`local`)** — plugin class + config form + Core schema fragment | s3/aws_s3/sftp removed from scope (become submodules); `in_memory` stays a dev-only test fixture (not moved into Core). New `local` driver. |
+| **#89** (T78) | red tests for the four drivers | red tests for `local` only | s3/aws_s3/sftp red tests move to the submodule T# tickets; `in_memory` stays covered by its fixture module. |
 | **#17** (M3) | Visibility strategy + `use_acl` (subclassed S3 adapters) | **Core:** scheme-derived visibility + `directory_visibility` private (normalization already in the factory/`AdapterDefinition`). **S3 `use_acl` + subclassed adapters → the S3 submodules.** | Split; the S3-specific half lands in the submodule tickets below. |
 | **#19** (M3) | Mime-on-write (stored Content-Type == Drupal `filemime`) | **Core:** write path passes Drupal's guessed mime as adapter config. **S3 Content-Type test → the S3 submodules.** | Mechanism in Core; the S3 observable test lives with the S3 adapter. |
 | **#23** (M3) | Checksum API (S3 ETag via HeadObject, streaming MD5 elsewhere) | **Core:** the per-scheme checksum API + streaming MD5. **S3 ETag test → the S3 submodules.** | API surface in Core; S3-specific verification in the submodule. |
@@ -162,10 +170,10 @@ is its own composer package (`drupal/flysystem_aws`, `drupal/flysystem_asyncaws`
 
 1. **`architecture.md`**
    - §1 Non-goals: "No support for third-party adapters beyond the four shipped ones" → Core ships
-     two; three external-SDK adapters are optional submodules; third-party contrib adapters are the
-     community's responsibility (unchanged).
-   - §2 Support boundary: reflect the Core-two + three-optional-submodules split; `in_memory` becomes
-     a shipped production driver (no longer "test-support fixture only").
+     one (`local`); the three external-SDK adapters are optional submodules; `in_memory` is a dev-only
+     test fixture; third-party contrib adapters are the community's responsibility (unchanged).
+   - §2 Support boundary: reflect the Core-one + three-optional-submodules split; `in_memory` stays a
+     test-support fixture only (never a shipped Core driver).
    - §11 Adapter plugin contract: add that the three submodules are the reference "contrib-style"
      plugins proving the contract; the entity holds no driver knowledge (secret pairs derived from
      plugin declarations).
@@ -205,7 +213,7 @@ The submodule milestones slot between M3 and M4, renumbering the existing M4–M
 | M0 Setup | — | unchanged |
 | M1 Foundation | — | unchanged |
 | M2 Contract wrapper | — | unchanged |
-| M3 Adapter hardening (Core) | — | `in_memory`/`local` drivers, read-only, Core visibility/mime/checksum/GD-ImageMagick |
+| M3 Adapter hardening (Core) | — | `local` driver, read-only, Core visibility/mime/checksum/GD-ImageMagick |
 | **M4 flysystem_aws** | NEW | AWS SDK v3 submodule (`aws_s3` driver) |
 | **M5 flysystem_asyncaws** | NEW | AsyncAws submodule (`s3` driver) |
 | **M6 flysystem_sftpv3** | NEW | SFTP v3 submodule (`sftp` driver) |
@@ -229,8 +237,8 @@ M7; #28–#33 → M8; #34/#35/#36 → M9). New ticket milestone references below
 
 | Ticket | Change |
 |---|---|
-| #78 | Re-scope to Core drivers only: `in_memory` (moved from test fixture into `src/`) + `local`. Remove `s3`/`aws_s3`/`sftp`. |
-| #89 (T78) | Red tests for `in_memory` + `local` only. |
+| #78 | Re-scope to Core driver only: `local` (new, in Core `src/`). Remove `s3`/`aws_s3`/`sftp`. `in_memory` stays a dev-only test fixture (NOT moved into Core). |
+| #89 (T78) | Red tests for `local` only (`in_memory` stays covered by its fixture module). |
 | #17 | Split: Core keeps scheme-derived visibility + `directory_visibility` private; S3 `use_acl`/subclassed-adapter portion → S3 submodules. |
 | #18 | Stays Core; read-only uses the **existing `writable` flag** (settings.php bool, default TRUE; `false` = read-only wrapper) — no new flag. |
 | #19 | Split: Core passes Drupal's guessed mime to the adapter; S3 stored-Content-Type test → S3 submodules. |
@@ -246,7 +254,7 @@ M7; #28–#33 → M8; #34/#35/#36 → M9). New ticket milestone references below
 
 | Ticket | Change |
 |---|---|
-| #35 | **Reopen** (M9, renumbered from M6 — not completed) — scope changes in **comments only**; original description remains intact. Annotated reference adapter becomes `in_memory`/`local` (Core); submodules are the contrib-style references. |
+| #35 | **Reopen** (M9, renumbered from M6 — not completed) — scope changes in **comments only**; original description remains intact. Annotated reference adapter becomes `local` (the one Core-shipped driver); submodules are the contrib-style references. |
 
 ### 7.5 Unchanged (verified no carve-out impact)
 
@@ -257,8 +265,9 @@ M7; #28–#33 → M8; #34/#35/#36 → M9). New ticket milestone references below
 ## 8. Open items / decisions
 
 1. **Packaging — RESOLVED** (Option A, per-submodule composer packages; §4).
-2. **`in_memory` REMOTE classification as a production driver** — preserved for now (it is what makes
-   it a good contract test vehicle); confirm acceptable for a shipped driver.
+2. **`in_memory` REMOTE classification as a test-fixture driver** — preserved (it is what makes it a
+   good contract test vehicle); it stays in the `flysystem_inmemory_test` fixture module (its library
+   is in `require-dev`), never a Core-shipped driver.
 3. **Read-only flag — RESOLVED (user, 2026-08-30):** use the existing `writable` flag in
    settings.php (bool, default TRUE). `writable: false` = read-only (ReadOnlyFilesystemAdapter
    wrapper); `writable: true` (default) = writable. No new settings.php key; no precedence question —

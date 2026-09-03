@@ -1,5 +1,41 @@
 # Lessons Learned
 
+## Session: TDD convention violated — coverage-only shortcut (2026-08-31)
+
+### [TDD_NON_NEGOTIABLE_NO_COVERAGE_ONLY_EXCEPTION] — 2026-08-31 — READ THIS FIRST
+
+- **Problem**: #108/#119/#120 (feature tickets) were worked without T# red-test tickets. The agent invoked a "coverage-only / go straight to Done when green" note in plan-m3.md and board.md step 6 to justify it. The user's directive is absolute: **TEST-DRIVEN DEVELOPMENT, NO EXCEPTIONS** — v3 had all-green tests and does not work; TDD exists to prevent exactly that. "Coverage-only" is a shortcut, not a category.
+- **Root cause**: `ASSUMPTION_ERROR` — the agent treated convenience language in plan/board docs as an authorized exception to the binding TDD convention, and used an already-violated ticket (#108) as precedent instead of surfacing the violation.
+- **Failure type**: `ASSUMPTION_ERROR` (right facts — the doc said it; wrong inference — that it overrode the convention)
+- **Solution** (BINDING): AGENTS.md rule 12 — TDD is non-negotiable; EVERY feature ticket gets a T# red-test ticket; NO "coverage-only" or "straight to Done" exception; a green T# at authoring time is authored as a regression pin and gated through the T# review anyway. plan-m3.md and board.md step 6 corrected to revoke the exception language. #108/#119/#120 must get T# tickets retroactively.
+- **Category**: other (project governance)
+- **Applies to**: every future session; any ticket, any doc
+- **Suggested improvement**: encoded in AGENTS.md rule 12; treat any doc language suggesting a TDD exception as an error to correct, never as permission.
+
+## Session: M3 plan error — Core adapter count + composer.json SDKs (2026-08-31)
+
+### [CORE_SHIPS_ONE_ADAPTER_NOT_TWO] — 2026-08-31 — READ THIS FIRST
+
+- **Problem**: The M3 planning docs (`adapter-submodules.md` §2.1, `plan-m3.md`, `architecture.md`, `config-and-upgrade.md`, `plan-m2.md`, `testing.md`) said "Flysystem Core ships exactly two adapter drivers: `in_memory` and `local`." This is WRONG. Core ships exactly ONE adapter — `local` — because `league/flysystem-local` is required by `league/flysystem` itself (it ships with League\Flysystem by default). `in_memory` uses `league/flysystem-memory`, which is a separate package in the module's **`require-dev`** — it is a dev-only test fixture, never a Core-shipped driver. The composer.json ALSO listed the three S3/SFTP SDKs (`league/flysystem-async-aws-s3`, `-aws-s3-v3`, `-sftp-v3`) in `require` — those adapters are unbuilt submodule scope; keeping the libraries in Core's require invites importing them where they do not belong.
+- **Root cause**: `KNOWLEDGE_GAP` + `ASSUMPTION_ERROR` — the plan was written without grounding the adapter list in the module's actual composer.json (require vs require-dev) and in league/flysystem's own packaging (which adapter ships by default). The user corrected it bluntly: "the in_memory adapter is ONLY for testing. Period." The composer.json is the authoritative source: `require` = shipped, `require-dev` = test-only.
+- **Failure type**: `ASSUMPTION_ERROR` (plan stated two Core adapters without verifying composer.json require/require-dev split)
+- **Solution** (BINDING): Flysystem Core ships ONE adapter (`local`). `in_memory` stays a dev-only test fixture in `flysystem_inmemory_test` (its library in `require-dev`). The three SDK libraries are NOT in Core's composer.json `require` — they belong to the submodule packages (M4–M6). When planning driver scope, ALWAYS check the module's composer.json require/require-dev split AND whether the league package ships with league/flysystem by default. All planning docs corrected 2026-08-31.
+- **Category**: other (project planning)
+- **Applies to**: every future session touching adapter scope or composer.json
+- **Suggested improvement**: encoded in the corrected planning docs; the composer.json require/require-dev split is the ground truth for what ships.
+
+## Session: Worked a T# whose implementation had an unstarted blocker (2026-08-31)
+
+### [T_WORKED_BEFORE_IMPLEMENTATION_UNBLOCKED] — 2026-08-31 — READ THIS FIRST
+
+- **Problem**: At the user's direction I worked T17 (#54, visibility + use_acl red tests), authored and approved them, and moved #54 to "Tests complete, failing". Only afterward did I trace that its implementation ticket #17 is ALSO blocked by #78 (Core adapter drivers) — which had not started. Result: #54's approved red tests sit IDLE (not consumable) until #78 starts; #17 cannot start. The user's verdict: "That was shitty planning on your part." The ready queue had made #54 look startable; it was only startable in isolation, not as a link in the chain.
+- **Root cause**: `ASSUMPTION_ERROR` — I checked #54's own blockers (all closed, so it was in Ready) but did NOT trace its DOWNSTREAM consumer chain before working it. A T# is only worth working when its implementation ticket's OTHER blockers are already started — otherwise the red tests are approved-but-idle. The dependency check must be on the implementation ticket (#17's full blocked_by set), not just the T#.
+- **Failure type**: `ASSUMPTION_ERROR` (right facts — #54 unblocked; wrong inference — that working it was useful now)
+- **Solution** (BINDING): Before pulling ANY ticket into In progress, trace its consumer chain: for a T#, inspect the implementation ticket's `blocking`/`blocked_by` set and confirm no OTHER blocker of the implementation is unstarted (or flag it to the user BEFORE working). Work order should follow the dependency chain (start the deepest unstarted blocker first). A T# whose implementation has an unstarted second blocker is NOT actually ready — it is work whose output will idle.
+- **Category**: other (project governance / planning)
+- **Applies to**: every future session that pulls a ticket from Ready
+- **Suggested improvement**: encoded in AGENTS.md rule 10 (sub-rule added 2026-08-31); `docs/agents/board.md` dependency rule (consumer-chain trace on pull).
+
 ## Session: Session start — repository layout misread (2026-08-31)
 
 ### [MODULE_IS_OWN_GIT_REPO_FORGOTTEN] — 2026-08-31 — READ THIS FIRST
@@ -253,3 +289,21 @@
 - **Applies to**: all sessions with this user
 - **Suggested improvement**: keep this entry visible; when corrected, respond with 1-2 lines and the
   action — not an apology essay.
+
+### [SCRATCHPAD_IS_THE_TEMP_WORKSPACE] — 2026-09-03
+
+- **Problem**: Wrote temporary probe output to `/tmp/...` inside the web container. The approved
+  workspace for temporary files in THIS project is `.scratchpad/` at the project root (the same place
+  the GraphQL query files have been written all session). Writing to `/tmp` triggered the permission
+  gate on a phpunit run that also cleaned `/tmp/statprobe-*.txt`. The user had instructed this
+  repeatedly: use `.scratchpad/`, and WRITE IT DOWN.
+- **Root cause**: `KNOWLEDGE_GAP` — the `.scratchpad/` convention was used habitually for query files
+  but never recorded as the standing rule for ALL temporary files, so probe output drifted to `/tmp`.
+- **Failure type**: `KNOWLEDGE_GAP` (no documented rule; the convention was only implicit in usage)
+- **Solution** (BINDING): ALL temporary files — query files, probe output, scratch artifacts — go in
+  `.scratchpad/` at the project root. NEVER use `/tmp` for scratch files in this project. The
+  `.scratchpad/` directory is git-ignored (main repo `.gitignore`) and is the sanctioned scratch space.
+- **Category**: other (workspace convention)
+- **Applies to**: every session; every bash command that creates or reads a scratch file
+- **Suggested improvement**: encoded here; check the destination path of any file a command writes
+  before running it.

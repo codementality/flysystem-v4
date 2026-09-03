@@ -16,7 +16,9 @@ fi
 OUTPUT_DIR=/var/www/html/codecov
 mkdir -p "$OUTPUT_DIR"
 
-SIMPLETEST_DB=mysql://db:db@db/test SIMPLETEST_BASE_URL=http://web \
+MINK_DRIVER_ARGS_WEBDRIVER='["chrome", {"browserName":"chrome","goog:chromeOptions":{"w3c":true,"args":["--disable-dev-shm-usage","--disable-gpu","--headless","--dns-prefetch-disable"]}}, "http://selenium-chrome:4444/wd/hub"]' \
+  SIMPLETEST_DB=mysql://db:db@db/test \
+  SIMPLETEST_BASE_URL=http://web \
   XDEBUG_MODE=coverage \
   /var/www/html/vendor/bin/phpunit \
     -c /var/www/html/.ddev/commands/web/phpunit.xml \

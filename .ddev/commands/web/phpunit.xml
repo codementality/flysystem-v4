@@ -18,6 +18,7 @@
     <ini name="memory_limit" value="-1"/>
     <env name="SIMPLETEST_BASE_URL" value="http://web"/>
     <env name="SIMPLETEST_DB" value="mysql://db:db@db/test"/>
+    <env name="MINK_DRIVER_ARGS_WEBDRIVER" value='["chrome", {"browserName":"chrome","goog:chromeOptions":{"w3c":true,"args":["--disable-dev-shm-usage","--disable-gpu","--headless","--dns-prefetch-disable"]}}, "http://selenium-chrome:4444/wd/hub"]' />
   </php>
   <testsuites>
     <testsuite name="flysystem-unit">

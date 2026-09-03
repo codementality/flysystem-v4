@@ -15,8 +15,8 @@ Goal: 3.0 → 4.0 upgrades with minimal disruption — every *working* 3.0 confi
 
 **Driver availability note (carve-out, 2026-08-30):** the `s3`/`aws_s3`/`sftp` settings.php shapes
 below are preserved **verbatim** (additive-only), but each now requires its optional submodule
-enabled — `flysystem_asyncaws`, `flysystem_aws`, `flysystem_sftpv3` respectively. `local` and `in_memory`
-ship in Flysystem Core. See `adapter-submodules.md`.
+enabled — `flysystem_asyncaws`, `flysystem_aws`, `flysystem_sftpv3` respectively. `local` is the only
+adapter shipped in Flysystem Core; `in_memory` is a dev-only test fixture. See `adapter-submodules.md`.
 
 ### Local File System
 ```php

@@ -5,7 +5,9 @@
 ## Example: "ddev phpunit"
 
 set -e
-SIMPLETEST_DB=mysql://db:db@db/test SIMPLETEST_BASE_URL=http://web \
+MINK_DRIVER_ARGS_WEBDRIVER='["chrome", {"browserName":"chrome","goog:chromeOptions":{"w3c":true,"args":["--disable-dev-shm-usage","--disable-gpu","--headless","--dns-prefetch-disable"]}}, "http://selenium-chrome:4444/wd/hub"]' \
+  SIMPLETEST_DB=mysql://db:db@db/test \
+  SIMPLETEST_BASE_URL=http://web \
   /var/www/html/vendor/bin/phpunit -c /var/www/html/web/core/phpunit.xml.dist \
     --bootstrap /var/www/html/web/core/tests/bootstrap.php \
     /var/www/html/web/modules/custom/flysystem \
