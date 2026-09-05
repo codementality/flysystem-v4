@@ -40,7 +40,7 @@
 **This project spans two independent git repositories. Know which one you are in before any git command.**
 
 1. **Main repo** — `codementality/flysystem-v4` (this repo, branch `main`, GitHub). Contains ONLY planning/docs: `planning/`, `docs/`, `AGENTS.md`, `LESSONS_LEARNED.md`, `.ddev/`, `scripts/`, `config/`. It is the project-management shell (board + issues live here). **The module code is NOT here** — `.gitignore:74` excludes `web/modules/custom/flysystem`. Commit messages like "Updating after…" are the norm here.
-2. **Module repo** — `web/modules/custom/flysystem/` is its OWN git repository (it has its own `.git`, since the project started). Remote: `git@git.drupal.org:project/flysystem.git`. Branch: `4.0.x`. **ALL module code lives here** (`src/`, `tests/`, `config/`, `README.md`, `.gitlab-ci.yml`). All the milestones' code — M1 and M2, ~61+ closed tickets' worth — is committed in THIS repo.
+2. **Module repo** — `web/modules/custom/flysystem/` is its OWN git repository (it has its own `.git`, since the project started). Remote: `git@git.drupal.org:project/flysystem.git`. Branch: `4.0.x`. **ALL module code lives here** (`src/`, `tests/`, `config/`, `README.md`, `.gitlab-ci.yml`). All the milestones' code — M1 through M3, ~90+ closed tickets' worth — is committed in THIS repo.
 
 **Rules:**
 - **All module code work (code + tests) happens in the module repo** at `web/modules/custom/flysystem`. Run `git -C web/modules/custom/flysystem <cmd>` for anything about the code.
@@ -65,3 +65,17 @@ Labels carry blocking/decision state (columns carry workflow position — see `d
 ### Domain docs
 
 Single-context: one `CONTEXT.md` plus `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+### Planning docs — current milestone
+
+The **current milestone is M4 (flysystem_aws submodule, `aws_s3` driver)**. Its execution contract is
+`planning/plan-m4.md`. Source-of-truth companions: `planning/adapter-submodules.md` (the adapter
+carve-out: Core ships `local` only; `s3`/`aws_s3`/`sftp` are optional submodules M4–M6; `in_memory` is
+a dev-only test fixture), `planning/architecture.md` (§4–§7 behavioral contracts, §11 plugin
+contract), `planning/testing.md` (§2 TDD/seams, §4 Floci integration, §5 pain-map, §8 milestones),
+`planning/config-and-upgrade.md` (§2 preserved settings.php shapes, §3 preserved config-entity
+shapes). M3 (`planning/plan-m3.md`) is complete and immutable (milestone-immutability rule).
+
+**Floci is a prerequisite of the S3 submodules, not an M7 afterthought** (corrected 2026-09-05): the
+Floci integration layer (#24/#61) lives in M4, and #102/#104 are `blocked_by` it. M4 cannot be tested
+without Floci-emulated S3 + CloudFront — that is its entire testing purpose.
