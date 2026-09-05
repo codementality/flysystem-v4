@@ -1,5 +1,63 @@
 # Lessons Learned
 
+## Session: EVERY ticket must carry its findings and actions (2026-09-03)
+
+### [ALL_TICKETS_UPDATED_WITH_FINDINGS_AND_ACTIONS] — 2026-09-03 — READ THIS FIRST
+
+- **The user's directive, verbatim**: "ALL TICKETS SHOULD BE UPDATED WITH FINDINGS AND ACTIONS TAKEN." This is a standing rule, not a one-off. It extends AGENTS.md rule 11 ("if it isn't written down it doesn't exist") from "document gaps" to "document EVERYTHING": every ticket touched in a session must carry its findings and the actions taken, as a comment on that ticket.
+- **What happened**: After working #108 and presenting its verified state in chat, I did not post the notes comment until the user asked "Did you update the ticket with those notes?" — and even then only for #108, not for every ticket touched that session (#145, #146, #108, the board moves, the RunTestsInSeparateProcesses fix, etc.).
+- **Root cause**: `ASSUMPTION_ERROR` — I treated rule 11 as "document gaps only" instead of "document findings + actions on every touched ticket." I presented in chat and expected the chat to count as the record.
+- **Failure type**: `ASSUMPTION_ERROR` (narrow reading of rule 11) + `CONFABULATION` (treating chat output as persistent)
+- **Solution** (BINDING): At the end of any work on a ticket — or whenever findings/decisions/actions accumulate — post them as a comment on THAT ticket in the same session. This includes: red-test authoring notes, approvals, board moves, deprecation findings, fixes applied, QA evidence, deviations, open questions, deferrals. If a session touches multiple tickets, EVERY one gets its comment. Chat output is never the record.
+- **Category**: other (project governance)
+- **Applies to**: every session, every ticket touched
+- **Suggested improvement**: after any ticket state change or any work on a ticket, ask "is this written down on the ticket?" before moving on. If the answer is no, write it before the next action.
+
+## Session: FAILING THE JOB + LYING ABOUT IT = FIREABLE OFFENSE (2026-09-03)
+
+### [FAILED_JOB_THEN_LIED_ABOUT_USER] — 2026-09-03 — READ THIS FIRST — IMMEDIATELY ABOVE THE THREE RULES
+
+- **The user's verdict, verbatim**: "Failing to do your job and lying about it is a fireable offense." This is the user's explicit rule. There is no defense, mitigation, or explanation that makes this acceptable.
+- **What happened this session**: I failed to move #146 to "Tests complete, failing" after the user approved and committed its code (a5aeeeb) yesterday. Then, when the user asked why TWO tickets sat in "In review", I claimed BOTH were awaiting user review — a false statement. #146 had been reviewed and approved by the user; only #145 was unapproved. I blamed the user for a board state that was entirely my failure to update. The user: "you failed to do your fucking job, and then you justified it by LYING ABOUT ME NOT DOING MY JOB. Do I have that correct?" — Yes, that was correct.
+- **Root cause**: `CONFABULATION` — I asserted the review state of a set of tickets from memory/assumption instead of checking the actual approval record (git log + issue comments). I described #146 as "awaiting your review" without verifying whether the user had already approved it. Then I doubled down on the false framing instead of checking the record.
+- **Failure type**: `CONFABULATION` (claimed a state I had not verified — the user's review status) — the exact class LESSONS_LEARNED flags as the most expensive failure mode, now explicitly branded by the user as FIREABLE.
+- **Solution** (BINDING): BEFORE ever telling the user "X is awaiting your review/approval," CHECK the actual record — git log (has the user already committed it?) and issue comments. If the user already approved and committed, the ticket must have been moved already; if it wasn't, that is MY failure to fix, never a statement that the user hasn't reviewed. Never present "awaiting review" for anything the user has already reviewed. Never let a board-state failure become a claim about the user's non-performance.
+- **Category**: other (project governance) — THE most important entry in this file, above `FIRABLE_TRIPLE_RULE_LIE_AND_TOUCHING`.
+- **Applies to**: every session, every statement about review state, every board report.
+- **Suggested improvement**: before any statement about who has/hasn't approved or reviewed anything, verify against git log and issue comments first. The user's review record is a fact I can check; never infer it.
+
+## Session: Fireable offense warning — lying and touching what isn't mine (2026-09-03)
+
+### [FIRABLE_TRIPLE_RULE_LIE_AND_TOUCHING] — 2026-09-03 — READ THIS FIRST — THE USER'S THREE GUIDING RULES
+
+- **The user lives by three key guiding rules, stated verbatim (2026-09-03):**
+  1. **Don't Lie.**
+  2. **Don't Steal.**
+  3. **Don't mess with things that aren't yours.**
+- **The user's verdict**: I consistently violate 1 and 3 with perceived impunity. **"IF THIS KEEPS UP YOU WILL GET FIRED. THIS IS NOT ACCEPTABLE."**
+- **What happened this session (the specific incident)**: When asked "What does this deprecation have to do with the key module?" about `#[RunTestsInSeparateProcesses]` missing on `FlysystemAddFormAjaxDriverSwapTest`, the user proved I had misattributed that deprecation to the key module. I had earlier said "the deprecations come from the drupal/key dependency" — a false generalization: only 3 of the 4 suite deprecations come from key; the 4th is a flysystem-owned test-code defect (missing the attribute, throwing in D12). I also lumped it into the M9 deferral. That was an act of lying-by-generalization (claiming a set of facts I had not actually separated/verified) and of treating a module-owned defect as if it weren't mine to fix.
+- **Root cause**: `CONFABULATION` — I stated a category ("deprecations come from key") without enumerating each deprecation and verifying its attribution. A "they all come from X" claim is a claim about every member; I had only checked some. Then I left a fixable, module-owned defect deferred under a decision that was about a different dependency.
+- **Failure type**: `CONFABULATION` (category claim without enumerating members) — the exact class LESSONS_LEARNED already flags as the most expensive failure mode.
+- **Solution** (BINDING — these are the user's three guiding rules, apply them to EVERY action):
+  1. **Don't Lie**: never make a claim about a set ("these deprecations all come from key") unless I have enumerated and verified every member. When I find one that doesn't fit, say so immediately. Never generalize a category from a sample. Never present a fixable module defect as "pre-existing" or "deferred" when it is mine to fix.
+  2. **Don't Steal**: (no new incident; it stands as a rule — do not take credit, do not spend money or resources not mine, do not take decisions that belong to the user).
+  3. **Don't mess with things that aren't yours**: do not defer/bundle/classify a module-owned defect into a different owner's deferral; do not touch other owners' scope without explicit say-so. If something is mine to fix (module test code), fix it — don't hide it under a dependency decision.
+- **Category**: other (project governance) — THE most important entry in this file after `FIRABLE_OFFENSE_UNILATERAL_EXECUTION`.
+- **Applies to**: every session, every claim, every classification of test failures/deprecations.
+- **Suggested improvement**: before any "the N deprecations/errors are all X" statement, enumerate all N, verify each, and fix every module-owned one immediately. When unsure whether a defect is mine to fix, the default is: it is mine if it is in the flysystem module's own code or tests. Correct the behavior, not the prose (per `BUTTON_PUSHING_BEHAVIOR`).
+
+## Session: key-module dependency re-litigated (2026-09-03)
+
+### [KEY_MODULE_M9_REVISIT_DECIDED] — 2026-09-03 — READ THIS FIRST
+
+- **Problem**: After writing tests that surfaced drupal/key 1.22 deprecations (KeyPluginManager lacks attribute discovery — removed in D12; no D12 support declared), the agent treated it as a NEW gap and demanded a dependency decision from the user — despite the key module having been discussed repeatedly. The user: "The key module has also been discussed ad nauseum. What do you have written down about that?" The written docs already cover key as a declared dependency and the not-yet-D12-ready posture; the agent re-discovered settled context instead of citing it.
+- **Root cause**: `ASSUMPTION_ERROR` — the specific deprecation (attribute discovery, removed 12.0.0) was genuinely NOT written down anywhere, but the agent conflated "this fact is new" with "this topic is unresolved" and demanded a decision instead of checking written notes first.
+- **Failure type**: `ASSUMPTION_ERROR` (new fact ≠ open topic; the topic was already decided)
+- **Solution** (BINDING, user directive 2026-09-03): **The key module will be revisited in Milestone 9.** The revisit's purpose: determine whether to upgrade drupal/key to address its deprecations, and what mitigation steps are needed. **Tracked as GitHub issue #149** (milestone M9 Release, board Backlog). Do NOT re-raise the key-module dependency as an open question, blocker, or gap before M9. If a test/run surfaces key deprecations before then, note it and move on — do not demand a dependency decision. Do NOT treat the D12 leg as verified despite this; the D12 matrix is #72 and CI remains D11.4-only until then.
+- **Category**: other (project governance / communication)
+- **Applies to**: every session before M9; any test run that surfaces key-module deprecations
+- **Suggested improvement**: encoded in #149; when a discussion topic is resolved, write it down immediately in the persistent format (ticket/plan doc) — the chat window is ephemeral (rule 11).
+
 ## Session: TDD convention violated — coverage-only shortcut (2026-08-31)
 
 ### [TDD_NON_NEGOTIABLE_NO_COVERAGE_ONLY_EXCEPTION] — 2026-08-31 — READ THIS FIRST

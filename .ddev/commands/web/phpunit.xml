@@ -30,6 +30,9 @@
     <testsuite name="flysystem-functional">
       <directory>/var/www/html/web/modules/custom/flysystem/tests/src/Functional</directory>
     </testsuite>
+    <testsuite name="flysystem-functional-javascript">
+      <directory>/var/www/html/web/modules/custom/flysystem/tests/src/FunctionalJavascript</directory>
+    </testsuite>
   </testsuites>
   <source>
     <include>
