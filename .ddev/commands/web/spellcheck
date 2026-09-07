@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+## Description: Run spellcheck on module being written or modified
+## Usage: spellcheck
+## Example: "ddev spellcheck"
+
+set -uo pipefail
+
+MODULE="web/modules/custom/flysystem"
+CORE="web/core"
+
+#cd $CORE && node_modules/.bin/stylelint ../../$MODULE/**/*.css
+
+mkdir -p $MODULE/misc/cspell
+touch $MODULE/misc/cspell/dictionary.txt
+cp $MODULE/.cspell-project-words.txt $MODULE/misc/cspell/drupal-dictionary.txt
+cp /var/www/html/$CORE/.cspell.json /var/www/html/$MODULE/.cspell.json
+$CORE/node_modules/.bin/cspell -c ./$CORE/.cspell.json --no-progress \
+   $MODULE/**/*.php $MODULE/**/*.module $MODULE/**/*.install \
+   $MODULE/**/*.js $MODULE/**/*.yml $MODULE/**/*.twig
+rm -Rf $MODULE/misc/cspell
+rm $MODULE/.cspell.json

@@ -11,7 +11,7 @@ submodule ships a working `aws_s3` driver proven against Floci-emulated S3 + Clo
 document is the living execution contract for M4 and is kept current for the independent project
 review.
 
-**Document status (2026-09-05):** live contract — drafted at M3 completion, ahead of M4 execution.
+**Document status (2026-09-05):** live contract — drafted at M3 completion, ahead of M4 execution. Updated 2026-09-05 with the `planning/m3-code-review.md` findings: the Core corrections and M4-sequenced Core work are ticketed into M4 (#171–#194); #103's blocker corrected to #24; the M4 dependency graph below reflects the new edges.
 
 ---
 
@@ -68,14 +68,34 @@ All M4 tickets are **Backlog / Ready** on the board; nothing has been worked. Th
 |---|---|---|---|
 | **#24** | M3→M4: Floci integration layer + aws_s3 endpoint override | #61 (T24) + closed (#78/#71/#70/#37/#2/#1) | The M4 gate. Floci is a testing emulator ONLY (Core knows nothing of it — user decision 2026-08-30). Re-scoped 2026-08-30; moved to M4 + wired as submodule prerequisite 2026-09-05. |
 | **#61** | T24: red tests — Floci integration layer | all closed | Ready. Red integration tests against Floci-emulated S3/CloudFront: real PUT/GET/HEAD, visibility/ACL, presigned, public_url_base/CloudFront URLs, ACL-disabled bucket scenario. |
-| **#102** | M4: flysystem_aws submodule (aws_s3 driver) | #24 (Floci), #103 (T102) | The M4 deliverable. |
-| **#103** | T102: red tests — flysystem_aws submodule | — | Red contract tests for the `aws_s3` driver. |
+| **#102** | M4: flysystem_aws submodule (aws_s3 driver) | #24 (Floci), #103 (T102), + Core corrections (#180 H3, #182 M2, #184 M3, #186 M4, #188 M7) | The M4 deliverable. |
+| **#103** | T102: red tests — flysystem_aws submodule | #24 (T24) | Red contract tests for the `aws_s3` driver. Startable once #24/#61 start (the contract tests construct adapters; they do not connect to the emulator). |
 | **#153** | Mapping round-trip validation (scheme → aws_s3, write + read) | #156 (T153) | Mirror of Core #150, for the aws_s3 adapter. |
 | **#156** | T153: red tests — aws_s3 mapping round-trip | — | |
 | **#159** | GD + ImageMagick staging tests (aws_s3 scheme) | #165 (T159) | Mirror of Core #20/#21/#57/#58, against the real aws_s3 adapter. |
 | **#165** | T159: red tests — GD + ImageMagick staging with aws_s3 | — | |
 | **#160** | Core-scheme remap tests (public/private/assets as remote via aws_s3) | #166 (T160) | Mirror of Core #108/#109/#110, onto the aws_s3 adapter. |
 | **#166** | T160: red tests — public/private/assets remapped to aws_s3 | — | |
+
+### 2.3a Core corrections + M4-sequenced Core work (from the M3 code review)
+
+Filed 2026-09-05 from `planning/m3-code-review.md`. M3 is complete and immutable; these are new M4
+tickets that cite the M3 issues they correct (governance note in the review). Every feature ticket
+has its T# partner (AGENTS.md rule 12). The deferred (non-blocking) fixes from the same review sit in
+M7 (#195–#206) and M8 (#207/#208, L1 — drush packaging, needs-human, user decides later in the project).
+
+| Ticket | What it is | Blocked by | Blocks |
+|---|---|---|---|
+| **#172** (C1) | url_stat() returns FALSE for missing objects | #171 (TC1) | #61 |
+| **#174** (H1) | stat-cache invalidation on owned-scheme mutations | #173 (TH1) | #61 |
+| **#176** (C2) | copy()/move() return the resolved destination URI | #175 (TC2) | #159, #160 |
+| **#178** (H2) | stream transferContent() (no whole-file buffering) | #177 (TH2) | #159 |
+| **#180** (H3) | remove s3/aws_s3/sftp schema fragments from Core | #179 (TH3) | #102 |
+| **#182** (M2) | private download: scheme in URL + prefix strip | #181 (TM2) | #102 |
+| **#184** (M3) | presigned_expiry requires public_url_base + signing seam | #183 (TM3) | #102 |
+| **#186** (M4) | assertRequiredConfig() on AdapterDriverPluginBase | #185 (TM4) | #102 |
+| **#188** (M7) | Test connection AJAX on FlysystemFilesystemForm | #187 (TM7) | #102 |
+| **#190/#192/#194** (H4) | stream_metadata (chmod→visibility+touch) / realpath (LOCAL) / stream_lock (LOCAL flock) — implemented per the core `LocalStream` contract (§4.1/§6) | #189/#191/#193 | — |
 
 ---
 
@@ -84,12 +104,11 @@ All M4 tickets are **Backlog / Ready** on the board; nothing has been worked. Th
 Edges verified 2026-09-05 via GraphQL `blockedBy`:
 
 - **#24** (Floci integration layer) `blocked_by` #61 (T24) + closed #78/#71/#70/#37/#2/#1.
-- **#61** (T24) `blocked_by` all closed — **Ready**.
-- **#102** (flysystem_aws) `blocked_by` **#24 (Floci)** + #103 (T102).
-- **#103** (T102) `blocked_by` none open.
-- **#153** `blocked_by` #156; **#159** `blocked_by` #165; **#160** `blocked_by` #166.
-- **#36** (4.0 release) must gate on the submodules shipping (M1 review A4 finding — recompute the
-  transitive closure; add #102/#104/#106 edges if not already present).
+- **#61** (T24) `blocked_by` **#172 (C1)** + **#174 (H1)** + closed — the Floci integration tests need truthful stat semantics (C1) and post-write invalidation (H1).
+- **#102** (flysystem_aws) `blocked_by` **#24 (Floci)** + #103 (T102) + **#180 (H3), #182 (M2), #184 (M3), #186 (M4), #188 (M7)**.
+- **#103** (T102) `blocked_by` **#24 (Floci)** + closed (#100/#23/#19/#17/#78) — startable once #24 starts.
+- **#153** `blocked_by` #156 + **#102**; **#159** `blocked_by` #165 + **#102** + **#176 (C2)** + **#178 (H2)**; **#160** `blocked_by` #166 + **#102** + **#176 (C2)**.
+- **#36** (4.0 release) must gate on the submodules shipping (M1 review A4 finding); the #102/#104/#106 edges are present.
 
 **Correction applied 2026-09-05 (user-driven):** the Floci layer (#24/#61) was previously renumbered
 to M7, leaving M4's Floci-leg untestable. The board now places it **in M4** and wires #102/#104
@@ -108,6 +127,16 @@ authored as regression pins and gated through the T# review (AGENTS.md rule 12).
 Per `testing.md` §2 (vertical slices, one seam at a time). The seam is the boundary named in
 `testing.md` §2; the red test is authored first; only enough code to pass is written. Slice order
 follows the dependency chain — **deepest unstarted blocker first** (board.md consumer-chain rule).
+
+### Slice -1 — Core corrections (M3 code review, M4 milestone) — before the gate
+
+C1 (#172/#171), H1 (#174/#173), C2 (#176/#175), H2 (#178/#177), H3 (#180/#179), plus the
+M4-sequenced Core work M2 (#182/#181), M3 (#184/#183), M4 (#186/#185), M7 (#188/#187). These unblock
+#61 and #102 (see §3). Each is a TDD two-ticket dance with full local QA. H4
+(#189–#194) is implementation scope grounded in core `LocalStream`
+(`web/core/lib/Drupal/Core/StreamWrapper/LocalStream.php`) + architecture §4.1/§6:
+`stream_metadata` chmod→visibility and touch, `realpath()` for LOCAL schemes,
+`stream_lock()` flock for LOCAL schemes (FALSE stays the honest remote value).
 
 ### Slice 0 — Floci integration layer (#24/#61) — THE M4 GATE
 
@@ -230,7 +259,8 @@ submodule before relying on it.
 driver is discovered, configures, builds, validates secrets, and works end-to-end against
 Floci-emulated S3 + CloudFront (real PUT/GET/HEAD, visibility/ACL, presigned, CloudFront URLs,
 ACL-disabled), plus the validation mirrors (mapping round-trip, GD/ImageMagick staging, core-scheme
-remap). M4 is Done when all M4 milestone tickets are closed on the board with review
-(#24/#61, #102/#103, #153/#156, #159/#165, #160/#166). Per the milestone-immutability rule
+remap). M4 is Done when all M4 milestone tickets are closed on the board with review — the Core
+corrections and M4-sequenced Core work (#171–#194), the Floci gate (#24/#61), the submodule
+(#102/#103), and the validation mirrors (#153/#156, #159/#165, #160/#166). Per the milestone-immutability rule
 (user, 2026-08-30): once M4 is complete (all tickets worked, approved, Done), it is never revisited
 or changed.
