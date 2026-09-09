@@ -85,3 +85,40 @@ the wrong ticket). Before any bulk status/label change:
    change-set exactly — including that each moved item's `content.number` is the intended ticket
    (a mixup drags the WRONG issue; on a Done move it may also auto-close that issue — reopen and
    restore it if caught). Resolve item IDs from the fresh read, not from memory.
+
+## "Update the board" — THE executable procedure (added 2026-09-07)
+
+"Update the board" is a **full reconciliation of the board against the tracker's true
+dependency state** — it is NEVER limited to the ticket(s) just approved. SCOPE RULE
+(user directive 2026-09-08): full-board review happens ONLY during milestone
+planning. While working implementation tickets, every read and every
+reconciliation filters to the CURRENT milestone — the agent never fetches,
+moves, or reasons about other milestones' tickets unless explicitly instructed
+to. The agent executes
+this exact ordered checklist, in full, every time the user says "update the board", and the
+final step is MANDATORY — the update is not complete until the verification passes.
+
+1. **Fetch fresh state.** One board read (`gh project item-list`) + one GraphQL query of the
+   `blockedBy` edges for every OPEN issue on the board, captured immediately before operating.
+   Never reuse an earlier snapshot.
+2. **Move approved tickets to their correct columns.** Done pairs → Done (both T# and feature,
+   same action, then close both issues). A T# whose red tests the user approved but whose
+   implementation has NOT started → "Tests complete, failing". A T# whose red tests are authored
+   but not yet approved → In review.
+3. **Reconcile every non-Done ticket in the current milestone against its real blockers.** For EVERY ticket in
+   Backlog and Ready: fetch its actual `blocked_by` edge set. A ticket with an unstarted
+   (OPEN) blocker belongs in **Backlog** with `dependency-blocked`. A ticket with NO unstarted
+   blockers that is part of the current milestone belongs in **Ready**. Do not skip any ticket;
+   do not decide from memory or from an earlier read. (Other milestones' tickets are out of
+   scope during implementation work — see the SCOPE RULE above.)
+4. **Apply labels.** Add `dependency-blocked` to any Backlog ticket with an unstarted blocker.
+   Remove `dependency-blocked` from any ticket whose blockers are all started/closed — regardless
+   of column (a stale label in Ready or Done is a defect, fix it).
+5. **Verify milestones/board-presence.** Every new ticket is on the board in the correct column
+   and carries its milestone and labels.
+6. **Verification (MANDATORY, non-skippable).** Re-read the board + edges fresh and confirm the
+   resulting state matches the intended change-set exactly: every moved item's `content.number`
+   is the intended ticket, every Ready ticket has no unstarted blockers, every Backlog ticket
+   with an unstarted blocker carries `dependency-blocked`, no Done ticket carries
+   `dependency-blocked`. Report the full change-set to the user — every column move, label change,
+   edge change, and the verification result. The update is NOT complete until this step passes.

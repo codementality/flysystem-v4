@@ -32,7 +32,7 @@ The project adopts **TDD** and adheres to it — the design is already spec-firs
 
 The **Floci integration layer exercises seams 1–5 against real S3** — same assertions, real adapter.
 
-**Good tests**: assert behavior through seams, never implementation details; expected values come from independent sources (known-good literals / the spec — never recomputed the way the code does); each test reads like a specification of an observable capability.
+**Good tests**: assert behavior through seams, never implementation details; expected values come from independent sources (known-good literals / the spec — never recomputed the way the code does); each test reads like a specification of an observable capability. Parameterized cases are written as explicit test methods, never data providers: `@dataProvider` annotations are deprecated by PHPUnit 11 (removed in 12), and the `#[DataProvider]` attribute is silently ignored by this project's runner (verified 2026-09-08 on #239 — zero arguments passed, masquerading as product failures).
 
 **Pipeline enforcement**: every merge runs the full suite (contract + Floci) in the Drupal GitLab pipeline; a red test can never be merged. The "next red tests" live in the GitHub issue backlog — which is how GitHub issues + TDD compose.
 
@@ -51,7 +51,7 @@ The **Floci integration layer exercises seams 1–5 against real S3** — same a
 - **CI**: Floci Docker containers in the GitLab pipeline.
 - **Submodule ownership (carve-out, 2026-08-30):** the S3-specific integration suites live in the `flysystem_aws_s3` / `flysystem_s3` submodules (which own the adapters), consuming shared Floci infrastructure from Core. Core's own Floci tests cover only the Core drivers. See `adapter-submodules.md`.
 - Exercises what mocks can't: real PUT/GET/HEAD round trips, multipart upload behavior, visibility/ACL semantics, presigned URL generation, `public_url_base`/CloudFront URLs end-to-end, and stat fabrication against real S3 `lastModified`/`size` metadata.
-- **ACL-disabled bucket scenario**: the integration suite must cover the modern BucketOwnerEnforced bucket (any ACL → failure) to prove the `use_acl = false` subclassed-adapter path works.
+- **ACL-disabled bucket scenario — EMULATOR LIMIT (corrected 2026-09-08, M4 finding):** Floci accepts ownership-controls and every Deny form while enforcing neither, and never verifies signatures — so no provisioned bucket can discriminate ACL behavior. The `use_acl = false` path is proven BELOW the emulator instead (SDK mock-handler legs asserting header absence/presence; M4 #240 pattern), with existence-only `noacl` bucket provisioning. End-to-end proof waits on an enforcing backend (M9 retrospective #243, which also tracks filing the upstream Floci gaps).
 
 ## 5. Pain-map acceptance suite (the regression-prevention list)
 

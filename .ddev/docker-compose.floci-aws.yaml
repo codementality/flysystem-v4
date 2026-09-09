@@ -71,10 +71,11 @@ services:
       FLOCI_SERVICES_S3_ENFORCE_AUTH: ${FLOCI_AWS_S3_ENFORCE_AUTH:-true}
 
       # Read by the init hook in floci-aws/init/ready.d/10-default-buckets.sh,
-      # which creates both buckets on every start. Either can be set to an
+      # which creates the buckets on every start. Any can be set to an
       # empty string to skip it. Not Floci variables — this add-on's own.
       FLOCI_AWS_PUBLIC_BUCKET: ${FLOCI_AWS_PUBLIC_BUCKET:-public}
       FLOCI_AWS_PRIVATE_BUCKET: ${FLOCI_AWS_PRIVATE_BUCKET:-private}
+      FLOCI_AWS_NOACL_BUCKET: ${FLOCI_AWS_NOACL_BUCKET:-noacl}
       # Whether the public bucket may be listed with NO credentials. Off by
       # default. This does not affect a signed ListObjectsV2 from an SDK
       # holding the project's credentials, which is what application code does

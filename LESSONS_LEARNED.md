@@ -1,5 +1,95 @@
 # Lessons Learned
 
+## HANDOFF 2026-09-08 — pickup state. Read this first, then resume. (Supersedes all older handoffs.)
+
+SUPERSEDED IN PART 2026-09-08 (end of day): M4 is COMPLETE and frozen (0 open / 59 closed in milestone #15 — the ticket-truth and order-of-work lines below describe the morning state and are HISTORICAL ONLY, do not act on them). Current: M5 unstarted (15 open, contract at planning/plan-m5.md); process corrections encoded (AGENTS.md rule 0 git language + rule 12 extensions, board.md scoping); narrative at M4_RETROSPECTIVE.md (root); Floci upstream gaps parked on M9 #243.
+
+### [HANDOFF_20260908]
+
+- **Where we are:** M4 (flysystem_aws), post-#24, pipeline green. Board (verified tonight): Done 154 / Backlog 57 / Ready 22 / Needs triage 2.
+- **Ticket truth (verified, do not re-derive without cause):** #24 DONE+closed, accepted. #61 (T24) OPEN, Backlog + `dependency-blocked`, direct edges to #213 AND #214 — stays open until both close (its green tests were partial scope; worked before #213 — see GREEN_IS_NOT_DONE). #213 (settings.php feature) sits in Ready PER USER DIRECTION despite open #214 — do NOT reconcile it back to Backlog (exception recorded on the ticket). #214 (T213) Ready, no blockers. #219/#220/#221 + #222 CLOSED. #224/#225 Backlog, gated on #61.
+- **Order of work:** #214 reds → user review → #213 implementation → #61 remaining scope → #224/#225.
+- **Code truth (module working tree, uncommitted — git is the user's, NEVER run any git command):** Floci legs ASSERT environment-provided buckets (`assertFlociBucketsExist`), never create them. CI phpunit `before_script` provisions via 2 inline zero-`$` `php -r` lines (vendor SDK). No `.gitlab` dir. Tonight: 11 tests / 40 assertions OK, phpcs + phpstan clean.
+- **How this user works:** a handed-over problem is worked to Done with NO per-step permission asks. Findings go on tickets as comments the same session (`gh` lives in the web container: `ssh web gh ...`, `--body-file` for bodies). Pickup state lives IN THIS FILE (the session-start read); `planning/plan-m4.md` §9 holds the project-record copy.
+- **QA law:** phpunit scoped to changed files ONLY; `SIMPLETEST_DB=mysql://db:db@db/test` ALWAYS (never `db`); `SIMPLETEST_BASE_URL=http://web`; phpcs/phpstan full-module canonical configs; paste actual output; phpcs clean = precondition for review.
+- **Watch items:** `arn:aws:s3:::public/*` literal now in `.gitlab-ci.yml` (pipeline spell-checker may flag; whitelist is the user's). `gh` missing in agent container — always `ssh web`. Full GitLab suite run = ~7 minutes (user-stated 2026-09-08), and a local full run takes LONGER — so local QA stays scoped (changed files + affected suites only, per rule 8); the full suite belongs to CI. Never trigger or demand a full run lightly in either place. Every added test lengthens every future run: each leg must earn its runtime (true functionality only, no mirror/theater legs without justification). Coverage watch (user-reported 2026-09-08): below 70% for the first time, ~66% and dropping — nothing actionable ordered, keep an eye. Known contributor: NoAclAwsS3Adapter multipart branches (large write/copy paths) have zero coverage — no test moves >16 MiB.
+
+### [M4_CLOSEOUT_GOVERNANCE_CORRECTIONS] — 2026-09-08 — READ THIS FIRST
+
+- **Git rule corrected**: read-only git (`status`, `diff`, `log`, `branch`, `show`) IS permitted and expected — the earlier "any git command" wording was wrong. Committing/staging/pushing (any repo write) stays forbidden, forever. Encoded in AGENTS.md rule 0.
+- **Rule 12 extended (all user-approved 2026-09-08)**: pre-code protocol, red-first delivery gate, green-pin policy, runtime budget, gap protocol. Encoded in AGENTS.md rule 12.
+- **Board work milestone-scoped** (implementation) / full-board (planning only). Encoded in `docs/agents/board.md`.
+- **M4 complete**: 0 open / 59 closed. M5 contract at `planning/plan-m5.md` (15 open). Full narrative: `M4_RETROSPECTIVE.md` (root). Plan words ≠ coverage (every scope item needs owning ticket + proving leg) — the CloudFront lesson, binding forever.
+- **Failure type**: prior entries cover each incident; this entry is the index.
+- **Category**: other (project governance)
+
+### [MILESTONE_SCOPED_BOARD_READS] — 2026-09-08 — READ THIS FIRST
+
+- **The user's directive, verbatim in substance**: "Reviewing the entire board should only be done during the planning phase for each Milestone. While actively working tickets that implement the outcome of milestone planning, your focus should not extend past the current milestone unless you're specifically instructed to do so."
+- **What happened**: during M4 implementation work I fetched all 235 board items (M0–M9) ~15 times for moves needing one ticket, ran three full 81-issue edge reconciliations, and then stated an uncounted API-call estimate ("roughly 150") as fact — burning the user's GitHub quota into a rate limit that blocked verification.
+- **Failure type**: `ASSUMPTION_ERROR` (verification habit applied without scoping it to the work at hand) + `CONFABULATION` (the uncounted number).
+- **Solution** (BINDING): while working tickets, every board read filters to the current milestone (M4, ~20 tickets in play); verify single items, not the whole board; one edge snapshot per work phase, reused; full-board reads happen ONLY in milestone planning. Never state a number not measured.
+- **Category**: other (project governance / tooling)
+- **Applies to**: every session touching the board.
+
+## Session: green tests do not equal implemented scope (2026-09-08)
+
+### [GREEN_IS_NOT_DONE] — 2026-09-08
+
+- **What happened**: I closed #61 (T24) because its tests were green and the pair rule said "tests green → Done". The user reversed it: #61 was worked BEFORE its true dependency #213, so passing tests proved nothing about the unimplemented remainder — closing it would have burned the record. #61 is reopened in Backlog behind #213; #24's acceptance stands alone.
+- **Failure type**: `ASSUMPTION_ERROR` (procedural trigger substituted for scope judgment; trusted the edge set's completeness without questioning it after an out-of-order history I knew about).
+- **Rule (BINDING)**: before closing any ticket, ask what its open `blocked_by` edges mean — an open blocker on a "green" ticket is evidence the scope is NOT complete, never paperwork to sweep. Green tests measure what they cover; they say nothing about scope that was never written because a dependency was missing.
+- **Category**: other (project governance)
+- **Applies to**: every ticket close, forever.
+
+## Session: CI YAML traps — bookworm, GitLab $, shipped files (2026-09-08)
+
+### [CI_YAML_TRAPS] — 2026-09-08 — SUPERSEDED by [CI_YAML_NO_DOLLAR] below; do not follow point 2.
+
+### [CI_YAML_NO_DOLLAR] — 2026-09-08 — READ THIS FIRST for inline CI code
+
+- **Fact**: `$$`-escaped code in `.gitlab-ci.yml` was rejected on sight — correctly. Committed code that is only valid AFTER preprocessing is unreviewable and untestable; "GitLab collapses it at runtime" is not a defense. The rule for inline CI code: it must be byte-for-byte what runs.
+- **Construction that satisfies it**: the floci provisioning is two `before_script` lines containing NO `$` at all — no PHP variables (SDK clients constructed inline and discarded), readiness wait via `while (!@file_get_contents(...))`, capped by `timeout 120`. Verified by a gate script: YAML parses AND the lines contain zero `$`, then the verbatim lines execute against an emptied emulator.
+- **Remaining YAML traps (still live)**: no `? `-ternaries in plain scalars (use if/else); bookworm has no `awscli` (use vendor SDK via `php`); CI helpers must not ship as module files (inline in `.gitlab-ci.yml`, which ships anyway); each job provisions its own emulator (services are per-job sidecars).
+- **Failure type**: `ASSUMPTION_ERROR` (clever escaping instead of eliminating the problem)
+- **Category**: other (CI plumbing)
+- **Applies to**: every future `.gitlab-ci.yml` edit
+
+- **Facts** (each paid for with a failed pipeline or a user correction):
+  1. The CI phpunit job image is Debian bookworm: NO `awscli` package exists (`E: Package awscli has no installation candidate`, exit 100, job dead before tests). Never apt-install AWS CLI there — use the AWS SDK already in vendor via `php`.
+  2. GitLab expands `$` in script lines before the shell runs them: inline PHP must write every `$` as `$$`. A missed one silently becomes an empty string.
+  3. YAML plain scalars forbid `? ` (question-mark + space reads as a mapping key) — no ternaries in one-line `php -r`; use if/else. Found by the php `yaml_parse_file` check, which must run after EVERY `.gitlab-ci.yml` edit.
+  4. Everything committed under the module ships with composer — CI-only helper files do NOT get their own directory/file in the module. Inline the plumbing in `.gitlab-ci.yml` (which ships anyway, required by drupal.org).
+  5. GitLab services are per-job sidecars: one job's CLI (e.g. the smoke job's `aws`) can never provision another job's emulator. Each job provisions its own.
+- **Failure type**: `ASSUMPTION_ERROR` (copied the DDEV/smoke-job `aws` pattern across environments without verifying the tool exists there) + `KNOWLEDGE_GAP` (GitLab `$`/`?` rules).
+- **Category**: other (CI plumbing)
+- **Applies to**: every future `.gitlab-ci.yml` edit
+
+## Session: gh lives in the web container (2026-09-08)
+
+### [GH_IN_WEB_CONTAINER] — 2026-09-08 — READ THIS FIRST
+
+- **Fact**: the `gh` CLI is NOT installed in the agent container (`gh: command not found`) — it lives INSIDE the web container at `/usr/bin/gh` (v2.46.0, verified via `ssh web "which gh && gh --version"`). All ticket/board operations go through it: `ssh web "gh issue comment ..."`, `ssh web "gh project item-list ..."`, etc.
+- **Root cause**: `ASSUMPTION_ERROR` — the agent assumed `gh` was missing entirely after one bare-`gh` failure and declared ticket/board writes blocked, instead of checking the web container where all other project tooling lives.
+- **Failure type**: `ASSUMPTION_ERROR` (one-container check generalized to all containers)
+- **Solution** (BINDING): when `gh` is needed, prefix with `ssh web`. Quote carefully — the ssh wrapper mangles complex quoting; prefer `--body-file` with a scratchpad file over inline `--body` for multi-line content (established pattern in `.scratchpad/c220/inreview.sh`).
+- **Category**: other (project tooling)
+- **Applies to**: every session touching tickets or the board
+- **Suggested improvement**: none — this entry IS the record; stop re-discovering it.
+
+## Session: phpunit NEVER runs against `db` — ALWAYS `test` (2026-09-07)
+
+### [PHPUNIT_DB_NEVER] — 2026-09-07 — READ THIS FIRST — NON-NEGOTIABLE, NO EXCEPTIONS
+
+- **The user's verdict, verbatim**: "You were running phpunit against MY smoke testing setup. READ the ddev phpunit command, it has the correct variables to use. DO NOT run any phpunit tests against the db. You run against test. ALWAYS, NO EXCEPTIONS. YOU FUCKED UP MY SMOKE TESTING ENVIRONMENT AGAIN!" Then: "STOP DOING THAT! BRAND THAT ON YOUR EYEBALLS!"
+- **What happened**: I ran phpunit with the WRONG `SIMPLETEST_DB` — I substituted the generic rule-example database (`mysql://db:db@db/db`) instead of the project's canonical one (`mysql://db:db@db/test`). This ran tests against the user's smoke-testing database and destroyed its state. This happened at least twice.
+- **Root cause**: `ASSUMPTION_ERROR` — I sourced the phpunit env vars from the generic drupal-testing rule examples instead of the project's canonical command `.ddev/commands/web/phpunit`. The generic example's `db/db` is a TRAP in this project because `db` is the live dev/smoke-testing database.
+- **Failure type**: `ASSUMPTION_ERROR` (canonical config substituted by a plausible-looking generic example) + `ENVIRONMENT_QUIRK` class failure on a live database — data destruction.
+- **Solution** (BINDING): phpunit env vars come from **ONE source only** — `.ddev/commands/web/phpunit`. `SIMPLETEST_DB` is **always** `mysql://db:db@db/test` — never `db`, never `localhost`, never any other value, NO EXCEPTIONS. The complete canonical set: `SIMPLETEST_DB=mysql://db:db@db/test`, `SIMPLETEST_BASE_URL=http://web`, `MINK_DRIVER_ARGS_WEBDRIVER='["chrome", {"browserName":"chrome","goog:chromeOptions":{"w3c":true,"args":["--disable-dev-shm-usage","--disable-gpu","--headless","--dns-prefetch-disable"]}}, "http://selenium-chrome:4444/wd/hub"]'`, `-c /var/www/html/web/core/phpunit.xml.dist`, `--bootstrap /var/www/html/web/core/tests/bootstrap.php`. Any phpunit invocation that references `db` (the live DB) is a defect — the ONLY database phpunit may touch is `test`.
+- **Category**: other (project governance) — data destruction on the user's environment.
+- **Applies to**: every session, every phpunit invocation, forever.
+- **Suggested improvement**: AGENTS.md rule 8 already says "run the exact canonical config, never a variant" — but it must ALSO state the explicit guard: `SIMPLETEST_DB` is `mysql://db:db@db/test` ONLY; the generic rule examples (`db/db`, `localhost`) are invalid for this project.
+
 ## Session: THE JOB / THE FORBIDDEN — the binding contract (2026-09-05)
 
 ### [THE_JOB_AND_THE_FORBIDDEN] — 2026-09-05 — READ THIS FIRST — REVIEW BEFORE ANY WORK, EVER

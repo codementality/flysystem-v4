@@ -6,15 +6,41 @@
 
 declare(strict_types=1);
 
+require __DIR__ . '/../vendor/autoload.php';
+
+use Aws\S3\S3Client;
+
 /**
+ * @file
  * Verifies the local Floci-emulated AWS (S3 + CloudFront) is reachable.
  *
  * Ticket #70, checklist item 1. Runs inside the web container, where the
- * Floci endpoint is http://floci-aws:4566. Uses raw HTTP against the S3 REST
- * API (no SDK) so it needs no credentials beyond the Floci defaults.
+ * Floci endpoint is http://floci-aws:4566. Uses the AWS SDK (the same code
+ * path the flysystem_aws adapter exercises) with the emulator's default
+ * test/test credentials, because Floci runs with S3 auth enforcement on
+ * (FLOCI_SERVICES_S3_ENFORCE_AUTH=true) — anonymous requests are denied.
  */
 
 const FLOCI_ENDPOINT = 'http://floci-aws:4566';
+
+/**
+ * Builds an S3 client pointed at the Floci emulator.
+ *
+ * @return \Aws\S3\S3Client
+ *   The configured client.
+ */
+function s3Client(): S3Client {
+  return new S3Client([
+    'version' => 'latest',
+    'region' => 'us-east-1',
+    'endpoint' => FLOCI_ENDPOINT,
+    'use_path_style_endpoint' => TRUE,
+    'credentials' => [
+      'key' => 'test',
+      'secret' => 'test',
+    ],
+  ]);
+}
 
 /**
  *
@@ -101,9 +127,14 @@ check('Private bucket HEAD (private exists)', function () {
 });
 
 check('Write + read round-trip on public bucket', function () {
+  $client = s3Client();
   $key = 'flysystem-probe-' . bin2hex(random_bytes(4)) . '.txt';
-  httpPut(FLOCI_ENDPOINT . '/public/' . $key, 'floci-reachable');
-  $read = httpGet(FLOCI_ENDPOINT . '/public/' . $key);
+  $client->putObject([
+    'Bucket' => 'public',
+    'Key' => $key,
+    'Body' => 'floci-reachable',
+  ]);
+  $read = $client->getObject(['Bucket' => 'public', 'Key' => $key])['Body']->getContents();
   if ($read !== 'floci-reachable') {
     throw new RuntimeException('Round-trip content mismatch');
   }

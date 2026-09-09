@@ -1,14 +1,22 @@
 #!/bin/sh
 #ddev-generated
-# Creates the project's two default S3 buckets, every time Floci starts.
+# Creates the project's default S3 buckets, every time Floci starts.
 #
 #   public  — objects readable by anyone who can reach the emulator, no
 #             credentials. Writing still requires them. For images, uploads and
 #             other assets that are meant to be served straight to a browser.
 #   private — owner only. Nothing is readable without credentials or a
 #             presigned URL. For private uploads and testing presigned links.
+#   noacl   — existence only. Reserved name for the ACL-disabled
+#             (BucketOwnerEnforced) scenario the use_acl legs stand on. No
+#             ownership controls are applied here: this emulator image accepts
+#             put-bucket-ownership-controls and every Deny form while
+#             enforcing neither (probed 2026-09-08, see flysystem-v4#224), so
+#             any such call would be decorative. The bucket exists so
+#             existence legs pass; enforcement waits on an image that honors
+#             it (M9 retrospective).
 #
-# Rename either, or set one to an empty string to skip it:
+# Rename any, or set one to an empty string to skip it:
 #
 #   ddev dotenv set .ddev/.env.floci-aws --floci-aws-public-bucket=assets
 #   ddev dotenv set .ddev/.env.floci-aws --floci-aws-private-bucket=""
@@ -20,6 +28,7 @@ set -eu
 
 public="${FLOCI_AWS_PUBLIC_BUCKET:-}"
 private="${FLOCI_AWS_PRIVATE_BUCKET:-}"
+noacl="${FLOCI_AWS_NOACL_BUCKET:-}"
 region="${FLOCI_DEFAULT_REGION:-us-east-1}"
 
 # The public/private split is only real when Floci is checking signatures. With
@@ -113,5 +122,15 @@ if [ -n "${private}" ]; then
     echo "floci-aws: created bucket '${private}'"
   else
     echo "floci-aws: bucket '${private}' already exists"
+  fi
+fi
+
+if [ -n "${noacl}" ]; then
+  # Existence only (see header): no ownership controls, no policy — both are
+  # unenforced on this image and would only pretend to discriminate.
+  if create_bucket "${noacl}"; then
+    echo "floci-aws: created bucket '${noacl}'"
+  else
+    echo "floci-aws: bucket '${noacl}' already exists"
   fi
 fi

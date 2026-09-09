@@ -11,7 +11,7 @@ submodule ships a working `aws_s3` driver proven against Floci-emulated S3 + Clo
 document is the living execution contract for M4 and is kept current for the independent project
 review.
 
-**Document status (2026-09-05):** live contract — drafted at M3 completion, ahead of M4 execution. Updated 2026-09-05 with the `planning/m3-code-review.md` findings: the Core corrections and M4-sequenced Core work are ticketed into M4 (#171–#194); #103's blocker corrected to #24; the M4 dependency graph below reflects the new edges.
+**Document status (2026-09-08, CLOSED):** M4 complete — 0 open issues, 59 closed in milestone #15 (verified via milestone issue list). Exit criterion met: the `aws_s3` adapter is discovered, configures, builds, validates secrets, and works end-to-end against Floci-emulated S3 (real PUT/GET/HEAD, visibility/ACL-shape handling, presigned, public_url_base + CloudFront URLs), plus all validation mirrors green. Documented exclusions (not defects): end-to-end ACL-enforcement proof waits on an enforcing backend (M9 retrospective #243); the asyncaws half of the ACL scenario lives in M5 (#245/#246). Per the milestone-immutability rule this document is now frozen; corrections live in later milestones, never here.
 
 ---
 
@@ -48,34 +48,45 @@ dev-only test fixture.
 
 ---
 
-## 2. Execution status (2026-09-05)
+## 2. Execution status (2026-09-08, FINAL)
 
-All M4 tickets are **Backlog / Ready** on the board; nothing has been worked. The M4 gate is the
-**Floci integration layer (#24/#61)** — the T# (#61) is Ready (all blockers closed); the feature
-(#24) is Backlog, blocked by its T#.
+M4 gate status: **COMPLETE — all milestone tickets closed with review** (0 open / 59 closed, verified). The slices below all landed, including scope folded in during execution (see §9 closing record for the audit trail).
 
-### 2.1 Done
+### 2.1 Done (all)
 
-*(none — M4 not yet started.)*
+| Ticket(s) | What it is |
+|---|---|
+| **#24 / #61** | Floci integration layer + endpoint override + integration reds (incl. CloudFront leg). |
+| **#102 / #103** | flysystem_aws submodule + aws_s3 driver contract. |
+| **#213 / #214** | settings.php config for aws_s3 (incl. presigned + CloudFront URL wiring in Core `getExternalUrl()`, precedence presigned > base > CloudFront). |
+| **#219 / #220 / #221** | aws_s3 config form plugin + save validation. |
+| **#222 / #223, #230 / #231, #232 / #233** | Settings.php precedence, adapter-swap precedence, misconfiguration reporting. |
+| **#224 / #225** | Floci IAM buckets (public/private + `noacl` existence) + IAM reds (trimmed to achievable scope). |
+| **#234 / #235** | IAM-conflict detection (LoggingFilesystem reactive catch + base-over-private hook check) + reds. |
+| **#236 / #240** | use_acl subclassed adapter + mock-handler reds. |
+| **#237 / #239** | mime-on-write verification (wrapper injection proven). |
+| **#238 / #242** | ETag checksum verification (inherited, proven through subclass path). |
+| **#153 / #156** | Mapping round-trip, entity-half proof (settings half pre-proven). |
+| **#159 / #165** | GD + ImageMagick staging mirrors. |
+| **#160 / #166** | Core-scheme remap (registration-order fix + stat writability + moveUploadedFile streaming fallback). |
+| **#171 – #194** | Core corrections C1/H1/C2/H2/H3/M2/M3/M4/M7/H4 + T# partners (incl. #177/#178 transferContent streaming). |
+| **#84 / #241** | ACL-disabled scenario disposition (wire + wiring proof; E2E parked on #243). |
+| **#244** | README settings.php reference. |
 
 ### 2.2 In flight
 
-*(none.)*
+*(none — milestone complete.)*
 
 ### 2.3 Open, not started
 
-| Ticket | What it is | Blocked by | Notes |
-|---|---|---|---|
-| **#24** | M3→M4: Floci integration layer + aws_s3 endpoint override | #61 (T24) + closed (#78/#71/#70/#37/#2/#1) | The M4 gate. Floci is a testing emulator ONLY (Core knows nothing of it — user decision 2026-08-30). Re-scoped 2026-08-30; moved to M4 + wired as submodule prerequisite 2026-09-05. |
-| **#61** | T24: red tests — Floci integration layer | all closed | Ready. Red integration tests against Floci-emulated S3/CloudFront: real PUT/GET/HEAD, visibility/ACL, presigned, public_url_base/CloudFront URLs, ACL-disabled bucket scenario. |
-| **#102** | M4: flysystem_aws submodule (aws_s3 driver) | #24 (Floci), #103 (T102), + Core corrections (#180 H3, #182 M2, #184 M3, #186 M4, #188 M7) | The M4 deliverable. |
-| **#103** | T102: red tests — flysystem_aws submodule | #24 (T24) | Red contract tests for the `aws_s3` driver. Startable once #24/#61 start (the contract tests construct adapters; they do not connect to the emulator). |
-| **#153** | Mapping round-trip validation (scheme → aws_s3, write + read) | #156 (T153) | Mirror of Core #150, for the aws_s3 adapter. |
-| **#156** | T153: red tests — aws_s3 mapping round-trip | — | |
-| **#159** | GD + ImageMagick staging tests (aws_s3 scheme) | #165 (T159) | Mirror of Core #20/#21/#57/#58, against the real aws_s3 adapter. |
-| **#165** | T159: red tests — GD + ImageMagick staging with aws_s3 | — | |
-| **#160** | Core-scheme remap tests (public/private/assets as remote via aws_s3) | #166 (T160) | Mirror of Core #108/#109/#110, onto the aws_s3 adapter. |
-| **#166** | T160: red tests — public/private/assets remapped to aws_s3 | — | |
+*(none — all milestone tickets closed. The pre-close snapshot below is retained for the audit trail; §§3–4 describe the executed order.)*
+
+| Ticket | What it was at last snapshot | Notes |
+|---|---|---|
+| **#61 / #213 / #214** | Floci remaining scope + settings.php pair | Closed: #214 reds → #213 implementation (incl. CloudFront wiring) → #61 remaining scope. |
+| **#224 / #225** | Floci IAM buckets | Closed: public/private + `noacl` existence; IAM reds trimmed to achievable scope. |
+| **#153 / #156, #159 / #165, #160 / #166** | Validation mirrors | Closed: entity-half mapping proof; staging mirrors; remap (registration-order + stat fixes). |
+| **#102 / #103** | Submodule + driver | Closed earlier in the milestone. |
 
 ### 2.3a Core corrections + M4-sequenced Core work (from the M3 code review)
 
@@ -146,8 +157,9 @@ M4-sequenced Core work M2 (#182/#181), M3 (#184/#183), M4 (#186/#185), M7 (#188/
   override (#3618527, required for Floci and MinIO) and the Floci test infrastructure (container
   wiring consumed from #71's CI spike + the local DDEV addon). Core keeps no Floci knowledge; the
   harness lives in the submodule's test surface.
-- Gate: the `floci-aws` CI job (#71, Done) boots the emulator in the pipeline; the local DDEV addon
-  covers local runs.
+- Gate: the `phpunit` CI job carries the emulator as a `floci-aws` service
+  (the standalone `floci-aws` smoke job from #71 only proves the emulator
+  boots); the local DDEV addon covers local runs.
 
 ### Slice 1 — The submodule skeleton + contract red tests (#103)
 
@@ -232,7 +244,8 @@ sequencing. This list documents *why* each slice is where it is.
 - Every slice: red → green → (review); no refactoring inside the loop.
 - `#[RunTestsInSeparateProcesses]` on Kernel/Functional classes; never on Unit.
 - No test asserts implementation details — behavior through seams only.
-- Floci runs locally via the DDEV addon and in CI via the `floci-aws` job (#71, Done). ImageMagick
+- Floci runs locally via the DDEV addon and in CI via the `floci-aws` service
+  attached to the `phpunit` job (#24; #71 proved the emulator boots). ImageMagick
   binaries are installed in the pipeline (`phpunit` before_script).
 
 ---
@@ -264,3 +277,15 @@ corrections and M4-sequenced Core work (#171–#194), the Floci gate (#24/#61), 
 (#102/#103), and the validation mirrors (#153/#156, #159/#165, #160/#166). Per the milestone-immutability rule
 (user, 2026-08-30): once M4 is complete (all tickets worked, approved, Done), it is never revisited
 or changed.
+
+---
+
+## 9. Closing record 2026-09-08 (supersedes all prior handoffs; document frozen)
+
+Execution order as worked: #214 reds → #213 (+ CloudFront wiring) → #61 remaining scope → #224/#225 (IAM + `noacl` existence) → #234/#235 (conflict layer) → #236/#240 (subclass + mocks) → #237/#239 (mime) → #238/#242 (ETag) → #153/#156 (entity mapping) → #177/#178 (transferContent streaming) → #159/#165 (staging) → #160/#166 (remap: registration order + stat writability + moveUploadedFile fallback) → #84/#241 (scenario disposition) → #244 (README). M4 audit tickets #245/#246 filed for M5; spec amendments posted on M5 #105/#216.
+
+Scope folded in during execution (all on ticket records with user approval): CloudFront URL branch + precedence; stat uid/euid + read-only write-bit stripping; `moveUploadedFile` streaming fallback for remote URIs; `LoggingFilesystem` reactive catch + base-over-private hook check; transferContent streaming; `noacl` existence-only provisioning; mock-handler strategy where Floci cannot discriminate (ACL-disabled, signature verification — parked on M9 #243 with upstream-filing trigger).
+
+Standing corrections (user directives, see `LESSONS_LEARNED.md`): tests measure, never provision; green ≠ scope complete (open `blocked_by` = not done); phpunit scoped locally with `SIMPLETEST_DB=mysql://db:db@db/test`; canonical configs only, actual output pasted; one ticket delivered at a time.
+
+CI design (settled): phpunit job provisions `public`/`private`/`noacl` + public-read policy + auth-enforcement flag in `before_script` via inline zero-`$` SDK lines (byte-for-byte what runs; `yaml_parse_file` gate after every edit).
