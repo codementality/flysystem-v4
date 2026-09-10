@@ -537,3 +537,16 @@ SUPERSEDED IN PART 2026-09-08 (end of day): M4 is COMPLETE and frozen (0 open / 
 - **Failure type**: repeat violation of a binding rule — attention failure, not knowledge gap.
 - **Category**: other (project governance / tooling)
 - **Applies to**: every session touching the board.
+
+## HANDOFF 2026-09-10 — M5 validation mirrors + M6 planned (session record, rule 11)
+
+### [M5MIRRORS_SESSION] — 2026-09-10 — READ THIS FIRST for next session
+
+- **Where we are:** M5 milestone 16 at 0 open / 45 closed (verified): #161/#162/#167/#168 all Done (board verified). M5R milestone 18 ("M5R Retrospective review issues", open, 0 issues) sits between M5 and M6. M6 milestone 17: 14 open / 0 closed, contract at planning/plan-m6.md (written this session). Main HEAD: c5d7e8c (all session docs committed); module HEAD: a03fd83 (T161); module tree clean.
+- **Tickets worked (all TDD pair-close):** #168 (T162 reds: AsyncAwsCoreSchemeRemapTest Kernel 5 legs + AsyncAwsPrivateRemapDownloadTest Functional 2 legs) + #162 (verify-and-close, no code) → Done together. #167 (T161 reds: AsyncAwsGdStagingTest Kernel + AsyncAwsImagemagickStagingTest Functional) + #161 (verify-and-close, no code) → Done together. All legs green pins (M4 boot-registration work generalized across drivers); QA per ticket comments (phpcs clean, phpstan OK, CI green after the fix below).
+- **False-green incident (mine):** mirrored M4's Floci prefixes (`remap-test`/`gd-staging`/`im-staging`) onto the shared CI emulator — local legs passed against M4-written stale objects, CI failed testPrivateRemapServesDownload. Fixed to per-class prefixes (`s3-remap-test`, `s3-gd-staging`, `s3-im-staging`); both legs re-run honest-green (27 + 16 assertions). Binding rule added to plan-m5.md §3 and plan-m6.md §3: service keys unique per test CLASS (CI runs one job against shared services).
+- **Rate-limit incident (mine):** six full 200-item board pulls for single-card checks tripped GitHub's secondary limit; card moves frozen until 13:22 UTC, then verified. User directives written down twice over (NO_FULL_BOARD_PULLS + BOARD_QUERIES_MILESTONE_SCOPED_ALWAYS entries above) and encoded in docs/agents/board.md step 1 (one scoped pull per phase, trust mutation echoes, REST preferred).
+- **User decisions on record (do not re-ask):** green-pin T#s go through Tests complete, failing (column = "approved, implementation unblocked", not literal); #162/#161 accepted as verify-and-close (behavior already worked); M5R created for independent-review issues, gates M6 start; next session needs no re-brief (this entry + plan docs are the record).
+- **Parked:** #212 sits in Backlog but has no blockers (belongs in Ready at next reconciliation); plan-m6.md §2.1 notes it. #167's board moves were applied during the freeze (echoes clean, positions verified after reset).
+- **Failure type**: prior entries cover each incident; this entry is the index.
+- **Category**: other (session record)

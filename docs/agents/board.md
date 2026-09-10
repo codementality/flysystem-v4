@@ -99,8 +99,15 @@ this exact ordered checklist, in full, every time the user says "update the boar
 final step is MANDATORY — the update is not complete until the verification passes.
 
 1. **Fetch fresh state.** One board read (`gh project item-list`) + one GraphQL query of the
-   `blockedBy` edges for every OPEN issue on the board, captured immediately before operating.
-   Never reuse an earlier snapshot.
+    `blockedBy` edges for every OPEN issue on the board, captured immediately before operating.
+    Never reuse an earlier snapshot. EFFICIENCY (binding 2026-09-10): scope every pull to the
+    current milestone's tickets (extract only those issue numbers; past-milestone closed tickets
+    are never fetched); one pull per work phase, reused for all checks in that phase; never
+    re-pull to confirm a routine move (the mutation's empty echo means applied — verify
+    positions in the next phase's pull); single-card checks via scoped GraphQL aliases, never a
+    full pull; REST (`gh issue view/comment/close`, dependencies endpoints) for everything that
+    is not a card move. Heavy repeated pulls trigger GitHub's secondary rate limit and freeze
+    all card moves (happened 2026-09-10).
 2. **Move approved tickets to their correct columns.** Done pairs → Done (both T# and feature,
    same action, then close both issues). A T# whose red tests the user approved but whose
    implementation has NOT started → "Tests complete, failing". A T# whose red tests are authored
