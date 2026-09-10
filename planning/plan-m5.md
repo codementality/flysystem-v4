@@ -1,6 +1,6 @@
 # M5 — flysystem_asyncaws Submodule (s3 driver): Implementation Contract
 
-Scope: the M5 flysystem_asyncaws milestone tickets (milestone "M5 flysystem_asyncaws", 15 open issues, zero closed — verified 2026-09-08) and their dependencies. Source of
+Scope: the M5 flysystem_asyncaws milestone tickets (milestone "M5 flysystem_asyncaws", 0 open / 45 closed — verified 2026-09-10) and their dependencies. Source of
 truth: `planning/adapter-submodules.md` (§1 decision, §2.2 submodule contents, §4 packaging Option A,
 §5 re-scoping), `planning/architecture.md` (§4 behavioral contracts, §5 exceptions, §6 visibility,
 §11 adapter plugin contract), `planning/testing.md` (§2 TDD + seams, §4 Floci integration with the
@@ -45,6 +45,8 @@ mock-below-emulator where Floci cannot discriminate).
   config-form save (#226/#227), config-form render leg (#210, gates #104 directly).
 - The asyncaws half of the ACL-disabled scenario (#245/#246, deferred from #84).
 
+**Status 2026-09-10:** the #161/#162/#167/#168 validation mirrors are done and closed (staging + remap proven as green pins — the M4 boot-registration implementation generalized across drivers). Floci-names enforcement added 2026-09-10 (see §3): per-class unique prefixes are mandatory, not advisory. Follow-on: milestone 18 (M5R Retrospective review issues) sits between M5 and M6 — review issues from the independent code and plan review land there before M6 starts.
+
 **Not in M5:** the SFTP submodule (M6), the migration submodule
 (M8), release (M9), the D12 test matrix (#72, M7). The M9 retrospective (#243) tracks the
 Floci upstream gaps (unenforced ACL mechanisms, unverified signatures) for end-of-project action.
@@ -53,7 +55,7 @@ Floci upstream gaps (unenforced ACL mechanisms, unverified signatures) for end-o
 
 ## 2. Execution status (2026-09-08)
 
-M5 gate status: **unstarted — 15 open, 0 closed.** No ticket in any active column.
+M5 gate status: **0 open, 45 closed (verified 2026-09-10).** Validation mirrors #161/#162 (with T#s #167/#168) closed 2026-09-10; nothing In progress.
 
 ### 2.1 Open tickets and edges (verified via GraphQL `blocked_by`)
 
@@ -68,6 +70,8 @@ M5 gate status: **unstarted — 15 open, 0 closed.** No ticket in any active col
 | **#215 / #216** | settings.php config (feature + T215, amended: missing-keys leg + presigned probe) | #104 + #216 / #104 |
 | **#226 / #227** | Config-form save (feature + T227) | #104 + #227 / #104 |
 | **#245 / #246** | s3 ACL-disabled scenario (feature + T245) | #104 + #246 / #105 |
+
+Plus 28 corrective tickets filed 2026-09-09 (M4 review pairs C1/C3/C2/H3/H2/M1/M2/M4/M6/M5-log/IAM/L3/P6/P5: #247/#248 through #275/#276 — H4 #253/#254 live in M9 instead): every T# in Ready, every impl in Backlog + `dependency-blocked`.
 
 ### 2.2 Work order (deepest unstarted blocker first)
 
@@ -92,6 +96,10 @@ M5 gate status: **unstarted — 15 open, 0 closed.** No ticket in any active col
 - **Probe-first legs** (measure stock behavior, never assume it); green-at-authoring pins gated through T# review per rule 12.
 - **QA law**: phpunit scoped to changed files (`SIMPLETEST_DB=mysql://db:db@db/test`, `SIMPLETEST_BASE_URL=http://web`); phpcs/phpstan full-module canonical configs; actual output pasted; phpcs clean preconditions review.
 - **One ticket delivered at a time**; board reads filtered to the current milestone.
+- **Floci object keys are unique per test CLASS (mandatory, enforced 2026-09-10).** CI runs one phpunit job for the whole module against ONE shared Floci emulator, so identical bucket+key used by two classes read each other's objects — a stale-object false-green (2026-09-10: the s3 remap/staging mirrors copied M4's `remap-test`/`gd-staging`/`im-staging` prefixes and passed locally against M4-written objects, then failed in CI). Every test class owns its key prefix (e.g. `s3-remap-test`, `s3-gd-staging`); per-leg unique names inside it. A new test file reusing another class's prefix is a defect.
+- **Every config-key line names its consuming code path and its proving leg**, not just the key name. A key list is a declaration, not a contract: "`key X` is read by `Y` and proven by leg `Z`" is a contract. M4's `credentials.secret_key_id` was declared in the driver, the schema, the form, and the README, and consumed nowhere — because no ticket asked for a consumer (M4 review C1/P2). `send_chunked_body` was declared and consumed by an option the SDK does not have (H3/P5). A declared-but-unconsumed key is a false promise to the operator: the UI asks, they answer in good faith, the system silently discards it.
+- **Any config key settable from both settings.php and the admin form requires a proving leg per seam.** The two paths diverge — the form materializes `#default_value`s that settings.php never supplies — so a single leg proves half the feature. M4's CloudFront URL resolution had two legs, both on the settings.php seam; the entity seam was untested, and that is exactly where the defect was (M4 review C2/P3).
+- **Testability policy: addressable now stays; unaddressable-or-unmockable defers to M9 with the reason recorded.** Anything provable with the tools at our disposal (Floci, Kernel/Functional, vendored `MockHandler`, hand fakes of our own seams, license-clean emulators) is accommodated in-milestone. Anything that cannot be addressed or reasonably mocked — no theater leg, no silent drop — moves to M9 with the blast radius and the options recorded on the ticket (M4 review H4 precedent: #253/#254). A mocked leg must name its unmocked counterpart layer, or it is rejected at review.
 
 ---
 
