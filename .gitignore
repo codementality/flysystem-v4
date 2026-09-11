@@ -79,3 +79,4 @@ codecov/
 .ddev/.env.*
 .ddev/.env.
 .DS_Store
+upload/

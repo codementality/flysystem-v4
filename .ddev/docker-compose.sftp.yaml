@@ -1,0 +1,32 @@
+#ddev-generated
+# Configurable SFTP service for DDEV
+services:
+  sftp:
+    container_name: ddev-${DDEV_SITENAME}-sftp
+    hostname: ${DDEV_SITENAME}-sftp
+    image: "atmoz/sftp:alpine"
+    ports:
+      - "${SFTP_PORT:-2222}:22"
+    environment:
+      - SFTP_USERS=${SFTP_USERNAME:-sftp}:${SFTP_PASSWORD:-sftp}:${SFTP_UID:-1001}:${SFTP_GID:-1001}:${SFTP_DIR:-upload}
+    volumes:
+      - "${SFTP_HOST_PATH:-../upload/sftp}:/home/${SFTP_USERNAME:-sftp}/${SFTP_DIR:-upload}"
+    labels:
+      com.ddev.site-name: ${DDEV_SITENAME}
+      com.ddev.approot: ${DDEV_APPROOT}
+    networks:
+      - ddev_default
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "22"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  web:
+    depends_on:
+      - sftp
+
+volumes:
+  sftp-data:
+    name: ddev-${DDEV_SITENAME}-sftp-data

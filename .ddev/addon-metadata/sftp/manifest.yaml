@@ -1,0 +1,8 @@
+name: sftp
+repository: iljapolanskis/ddev-sftp
+version: 1.0.1
+install_date: "2026-09-11T11:06:06-04:00"
+project_files:
+    - docker-compose.sftp.yaml
+global_files: []
+removal_actions: []
