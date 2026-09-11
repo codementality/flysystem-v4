@@ -101,14 +101,17 @@ Single-context: one `CONTEXT.md` plus `docs/adr/` at the repo root. See `docs/ag
 
 ### Planning docs — current milestone
 
-The **current milestone is M4 (flysystem_aws submodule, `aws_s3` driver)**. Its execution contract is
-`planning/plan-m4.md`. Source-of-truth companions: `planning/adapter-submodules.md` (the adapter
-carve-out: Core ships `local` only; `s3`/`aws_s3`/`sftp` are optional submodules M4–M6; `in_memory` is
-a dev-only test fixture), `planning/architecture.md` (§4–§7 behavioral contracts, §11 plugin
-contract), `planning/testing.md` (§2 TDD/seams, §4 Floci integration, §5 pain-map, §8 milestones),
-`planning/config-and-upgrade.md` (§2 preserved settings.php shapes, §3 preserved config-entity
-shapes). M3 (`planning/plan-m3.md`) is complete and immutable (milestone-immutability rule).
+The **current milestone is M7 (Test hardening & CI — the adapter carve-out's renumbered
+original-M4 phase; its §1 groups the 20 open milestone-12 tickets)** after the user's
+approval; its execution contract is `planning/plan-m7.md`. The adapter submodules are DONE:
+`flysystem_aws` (plan-m4.md), `flysystem_asyncaws` (plan-m5.md), and `flysystem_sftpv3`
+(plan-m6.md; as-built record §6) closed M4–M6 — milestone-immutability applies. The
+as-built corrections for each land in their plan doc's §6 (execution records).
 
-**Floci is a prerequisite of the S3 submodules, not an M7 afterthought** (corrected 2026-09-05): the
-Floci integration layer (#24/#61) lives in M4, and #102/#104 are `blocked_by` it. M4 cannot be tested
-without Floci-emulated S3 + CloudFront — that is its entire testing purpose.
+Source-of-truth companions: `planning/adapter-submodules.md` (the adapter carve-out: Core
+ships `local` only; `s3`/`aws_s3`/`sftp` are optional submodules M4–M6; `in_memory` is a
+dev-only test fixture), `planning/architecture.md` (§4–§7 behavioral contracts, §11 plugin
+contract), `planning/testing.md` (§2 TDD/seams, §4 Floci integration, §5 pain-map, §8
+milestones), `planning/config-and-upgrade.md` (§2 preserved settings.php shapes, §3
+preserved config-entity shapes), and `planning/drupal-issue-queue.md` (the Section-A/B
+regression-prevention determinations M7 consumes).

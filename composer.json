@@ -28,12 +28,12 @@
         "league/flysystem": "^3.35",
         "league/flysystem-async-aws-s3": "^3.0",
         "league/flysystem-aws-s3-v3": "^3.35",
-        "league/flysystem-read-only": "^3.0"
+        "league/flysystem-read-only": "^3.0",
+        "league/flysystem-sftp-v3": "^3.0"
     },
     "require-dev": {
         "drupal/core-dev": "^11.0",
         "league/flysystem-memory": "^3.0",
-        "league/flysystem-sftp-v3": "^3.0",
         "rector/rector": "^2.6"
     },
     "conflict": {

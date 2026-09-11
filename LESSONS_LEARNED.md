@@ -1,5 +1,26 @@
 # Lessons Learned
 
+### [SSH_SESSIONS_NEVER_GET_COMPOSE_ENV] — 2026-09-12 — CORRECTS [GH_TOKEN_STALE_CONTAINER_RENDER] BELOW — READ THIS FIRST
+
+- **Real root cause of the post-restart gh failures (verified)**: NOT a stale container. `ssh web` sessions go through SSHD, which constructs each session's environment fresh and NEVER forwards the container/compose environment — so GITHUB_TOKEN (from `.ddev/.env`, rendered into compose `environment:`) is invisible to every `ssh web <cmd>` session, regardless of restarts. `ddev ssh` (docker exec) DOES inherit container env, which is why the user always sees the token in their shell.
+- **Contributing factor**: the AI-SSH entrypoint (`.ddev/web-build/Dockerfile.ai-ssh:23`) whitelists only `^DDEV_|IS_DDEV_PROJECT|PATH` when writing `/etc/ddev-env`, so GH_TOKEN is not saved there either.
+- **Solution (working pattern, verified 4996 rate remaining)**: `TOKEN=$(grep '^GITHUB_TOKEN=' .ddev/.env | cut -d= -f2-)` then `ssh web env GH_TOKEN="$TOKEN" bash <script-file>` — or `ssh web env GH_TOKEN="$GITHUB_TOKEN" ...` (the agent container also has GITHUB_TOKEN in its own env). Multi-arg gh commands through nested ssh quoting get mangled (gh prints help); always run gh through a script file in `.scratchpad/`.
+- **Actual resolution (2026-09-12, verified)**: the container re-creation (sftp add-on install + restarts) wiped gh's persisted login (`/home/lisaridley/.config/gh/hosts.yml` — the state every earlier session silently relied on); the sshd env gap was a pre-existing constant that never mattered before. Restored via `gh auth login --with-token` as lisaridley inside web (non-interactive, token from the agent container's own env). Plain `ssh web gh ...` works again. CAVEAT: any future container re-creation (add-on install, image rebuild) will wipe this login again — re-run the login step, or use the `env GH_TOKEN=` prelude.
+- **Failure type**: prior entry [GH_TOKEN_STALE_CONTAINER_RENDER] was a misdiagnosis (stale-container theory); this entry supersedes it.
+- **Category**: other (DDEV environment / sshd env semantics)
+- **Applies to**: every session using `ssh web` for gh/board/ticket operations
+- **Durable fix candidates (pending user decision)**: (a) post-start hook appending GITHUB_TOKEN to `/etc/environment` (pam_env serves it to ssh sessions), or (b) keep the `env GH_TOKEN=` prelude on every gh call.
+
+## Session: post-reboot gh auth failure — stale container vs current .ddev/.env (2026-09-11/12)
+
+### [GH_TOKEN_STALE_CONTAINER_RENDER] — 2026-09-11/12 — READ THIS FIRST for post-restart sessions
+
+- **Problem**: after the system reboot, every `ssh web gh` call failed with "not logged into any GitHub hosts" although the user was logged in on the HOST. Diagnostic chain: no `~/.config/gh/` inside web, no GH_TOKEN/GITHUB_TOKEN in the container env (`printenv` — use printenv, never `[ -n "$VAR" ]` through the ssh wrapper, which mangles quoting), none in startup files — YET the current render `.ddev/.ddev-docker-compose-full.yaml` line 610 HAS `GITHUB_TOKEN` in the web service (from `.ddev/.env`). Root cause: the RUNNING web container predates the current `.ddev/.env` render — reboot left a stale container; the sftp add-on install recreated it via addon hooks without re-applying the env.
+- **Failure type**: `ENVIRONMENT_QUIRK` (stale container vs current render) — first assumed "user must re-auth gh", which was wrong; the token was already provisioned.
+- **Solution (BINDING)**: post-restart gh failures in web → check the container env FIRST (`ssh web printenv GITHUB_TOKEN`), then compare against the compose render — if render has it but container does not, the container is stale: `ddev restart` (or `ddev rm && ddev start`) on the HOST, then re-verify with a scoped `gh api rate_limit` + milestone-scoped REST read (never a full-board pull). Never ask the user to re-auth gh while the render already holds a working token.
+- **Category**: other (DDEV environment / reboot recovery)
+- **Applies to**: every session after a host reboot or ddev restart that "loses" gh auth
+
 ## SESSION START — read this first, every session (user standing instruction)
 
 1. Read this file (top first — newest state) **and** `AGENTS.md` (esp. rule 0 job/forbidden list — re-check before every ticket action, not from memory).
@@ -550,3 +571,73 @@ SUPERSEDED IN PART 2026-09-08 (end of day): M4 is COMPLETE and frozen (0 open / 
 - **Parked:** #212 sits in Backlog but has no blockers (belongs in Ready at next reconciliation); plan-m6.md §2.1 notes it. #167's board moves were applied during the freeze (echoes clean, positions verified after reset).
 - **Failure type**: prior entries cover each incident; this entry is the index.
 - **Category**: other (session record)
+
+## Session: gh CLI gaps found while filing M5R (2026-09-10)
+
+### [GH_NO_ADD_BLOCKED_BY_USE_REST_WITH_DB_ID] — 2026-09-10
+
+- **Problem**: `gh issue edit --add-blocked-by` does not exist in gh 2.46.0 (`unknown flag`) — all six edge adds failed while the `tail -1` pipe swallowed the error, and empty output was mistrusted as success until GraphQL verification showed no edges.
+- **Solution**: use the REST dependencies API with the blocker's DATABASE id (not the issue number): `echo '{"issue_id": <DB_ID>}' | ssh web "gh api -X POST 'repos/codementality/flysystem-v4/issues/<N>/dependencies/blocked_by' --input -"`. Get DB ids via `gh api repos/.../issues/<N> --jq .id`. Verify via GraphQL `blockedBy` (authoritative; REST view is stale-prone).
+- **Failure type**: `ASSUMPTION_ERROR` (trusted empty echo without verifying; piped stderr through tail)
+- **Category**: other (project tooling)
+- **Applies to**: every future edge write
+
+### [GH_ISSUE_CREATE_MILESTONE_TAKES_TITLE] — 2026-09-10
+
+- **Problem**: `gh issue create --milestone 18` fails (`'18' not found`) — the flag takes the milestone TITLE, not the number. Nothing was created, so no cleanup.
+- **Solution**: `--milestone 'M5R Retrospective review issues'`.
+- **Failure type**: `ASSUMPTION_ERROR`
+- **Category**: other (project tooling)
+
+### [GH_PROJECT_ITEM_EDIT_NEEDS_PROJECT_ID] — 2026-09-10
+
+- **Problem**: `gh project item-edit --id ... --field-id ... --single-select-option-id ...` fails with `project-id must be provided` in this gh version.
+- **Solution**: add `--project-id PVT_kwDOAPGHWc4Bhr-A` (project 11; resolve once via `gh project view 11 --owner codementality --format json --jq .id`).
+- **Failure type**: `KNOWLEDGE_GAP`
+- **Category**: other (project tooling)
+
+## Session: #304/#308 — missed pin file + phpstan cache/path hazard (2026-09-11)
+
+### [PIN_FILE_SWEEP_INCOMPLETE] — 2026-09-11
+
+- **Problem**: #308's corrected presigned direction rewrote AwsS3ConfigFormRenderTest + AwsS3ConfigFormSaveTest but missed the third M4-era pin file — `AwsS3LocalEntitySeamTest`… actually `AwsS3PublicUrlEntitySeamTest` (tests/src/Functional, #251/#252) — which GitLab (canonical; the user committed the working tree) then failed on four legs.
+- **Root cause**: `ASSUMPTION_ERROR` — the affected-pins enumeration was grep-scoped to `validatePresignedExpiry`/single files named in the retro review instead of grepping the whole tests tree for consumers of the flipped direction (presigned assertions, private/public gating).
+- **Solution (BINDING)**: when a direction/contract flips, enumerate EVERY test file whose assertions depend on the old direction: grep broadly (behavior keywords in both modules' tests/ trees), not just named/in-review files, BEFORE claiming the implementation complete; the canonical pipeline must be a foregone conclusion (rule 8). Record: pipelines green only after the four legs were re-pinned + the opt-in default introduced.
+- **Category**: project governance / TDD
+- **Applies to**: every implementation ticket flipping prior behavior (esp. surface/visibility).
+
+### [PHPSTAN_RELATIVE_PATH_OR_STALE_CACHE] — 2026-09-11
+
+- **Problem**: full-module phpstan flips between `[OK] No errors` and false `[ERROR] Found N errors` (class.noParent/method/class-notFound on files whose bases obviously resolve — KernelTestBase, WebDriverTestBase) depending on INVISIBLE state: the result cache and the invocation path variant. Proven: same file → clean in a single-file probe; failing in the full run; fresh cache + canonical relative path → consistently clean.
+- **Root cause**: `CONFABULATION` on my part initially (read the absolute-path 34/179 errors as real), then `ENVIRONMENT_QUIRK` twice over: (1) the `$DDEV_DOCROOT/modules/custom` (absolute, parent-dir) target resolves base classes differently than the canonical relative `web/modules/custom/flysystem`; (2) a stale result cache can mask the absolute-path variant's false positives, so "[OK]" appeared on runs that, freshly re-analyzed, would fail.
+- **Solution (BINDING)**: full-module phpstan MUST run the canonical RELATIVE target (`web/modules/custom/flysystem`, per the `.ddev/commands/web/phpstan` body) — never `$DDEV_DOCROOT/modules/custom` — and when ANY error emerges, re-run with a cleared result cache before believing either direction (`--clear-result-cache` first). Never paste [OK] obtained from a run in which the changed files' resolution depended on an unverifiable cache state.
+- **Category**: phpstan / QA-law
+- **Applies to**: every local QA run
+- **Suggested improvement**: extend AGENTS.md rule 8 with "canonical relative path + fresh-cache discipline when files changed".
+
+## HANDOFF 2026-09-11 (night) — M5R C1+H1 pairs closed, M5R continues (session record)
+
+- **Where we are:** #303/#307 (C1 tri-state) and #304/#308 (H1/H2 presigned alignment) all Done/CLOSED, joint-close records on tickets. Canonical GitLab: GREEN (user-verified, includes the corrective commit). Local full QA at end of session: phpcs exit 0, phpstan [OK] (canonical relative path, fresh cache), phpunit FULL module suite 486 tests / 0 failures (only known drupal/key deprecations, M9 #149).
+- **Next in queue (user go required each step):** #305 (T-reds, in Ready) → #309 (scrub the getAdapter build-failure log at FilesystemFactory.php ~:388 + the allowlist-vs-denylist decision #294 deferred); then #306 (T-reds) → #310 (stop caching determined FALSE). #305 and #306 are both Ready; consumer-chain clear (#309/#310 blocked only by their T#s).
+- **Board hygiene for next reconciliation:** check remaining M5R items (#287/#292 A.4 audience gate was in review per m5r-summary.md — verify its true state; other M5R tickets per ticket truth — re-read fresh, never from this note).
+- **Standing process notes encoded this session (both in LESSONS above):** (a) PIN_FILE_SWEEP_INCOMPLETE — flip-a-direction ⇒ enumerate ALL dependent test legs across both modules' tests/ trees before claiming implementation complete; (b) PHPSTAN_RELATIVE_PATH_OR_STALE_CACHE — canonical relative target only, fresh cache when any error appears; never paste an [OK] whose resolution depended on unverifiable cache state.
+- **Module repo:** working tree clean at a03fd83 + the user has already committed/pushed through #308; verify with git -C web/modules/custom/flysystem status at session start. Design decision recorded on #308: presigned is a public-scheme OPT-IN (field defaults empty; validator strips private or empty).
+
+## HANDOFF 2026-09-11 (late night) — M5R COMPLETE; M6 started: #212 delivered (session record, rule 11)
+
+- **Where we are:** M5R (milestone 18) fully closed — 0 open. All four retro pairs (#303/#307 C1, #304/#308 H1/H2, #305/#309 M1, #306/#310 M2) Done/CLOSED with joint-close records; canonical GitLab GREEN at each step (user-verified). M6 (milestone 17, sftp) STARTED after the user-approved plan review: plan-m6.md amended (18 open, B.1/B.2 pairs #299-#302 added to §2.1 table + work order, stale M5R-gate wording removed, provider-knobs non-scope line; local-parity correction noted connectivityChecker is docs-disclosed while preferredAlgorithms/disableStatCache are source-only). NEW #106 blockedBy edges wired AND VERIFIED on #301/{#106,#299} and #302/{#106,#300} — recorded on tickets (c301-edge comment + consumption note on #106).
+- **#212 delivered to In review and PUSHED to GitLab by the user (pipeline running):** sftp service (atmoz/sftp:alpine, alias sftp, SFTP_USERS=sftp:sftp:1001:1001:upload) on the phpunit job; readiness probe (tcp + phpseclib login via vendor) in before_script; standalone `sftp` smoke job (php:8.4-cli + openssh-client + sshpass, batch put/get round-trip); README "SFTP service" doc section. Local QA: yaml gate OK, trap-gate clean, snippets php -l clean, phpcs exit 0. GitHub remote now green per user's push. Next session MUST check the pipeline result for the sftp job — first sftp-in-CI run ever; watch for: sshpass availability, entrypoint-created upload dir permission, the smoke grep leg, and any spell-checker hits on sshpass/atmoz (user-only whitelist).
+- **User-side step pending (host):** `ddev add-on get iljapolanskis/ddev-sftp && ddev restart` (this session will also restart the agent container). Until then sftp service-backed legs FAIL locally by design when asserted (tests-measure-never-provision).
+- **Next queue (agreed with the user; each step needs their go):** #107 + #211 (T-reds, Ready) → T-B1/T-B2 reds (#299/#300, Ready, authored alongside #107 per the amended order — DO NOT start #301/#302 before #106 closes; their blockedBy include #106 now) → #106 (driver build, then its red-gated impls) → #158/#169/#170/#218/#229 → #155/#163/#164/#217/#228. #212 close (standalone infra, no T# pair) awaits the pipeline verdict + user review.
+- **Scope decisions on record (fresh, citation-ready):** presigned = public-scheme OPT-IN (field defaults EMPTY; validator strips private or empty — #308); build-failure log scrubbed + denylist kept until evidence (#309); undetermined IAM verdicts never persisted (#310); the three undocumented-providership knobs (preferredAlgorithms, disableStatCache, connectivityChecker) NOT consumed, recorded on #106.
+- **Process notes this session (see earlier entries for the full versions):** PIN_FILE_SWEEP_INCOMPLETE (grep the whole tests tree when a contract flips) and PHPSTAN_RELATIVE_PATH_OR_STALE_CACHE (canonical relative target; fresh cache on any error) were both learned and applied successfully in the #304-#310 stretch — the full-module phpstan habit is fresh-cache + relative path, and phpcs/phpstan/phpunit full canon at .ddev/commands/web/* remains the QA law.
+- **Container restart-proofing:** the .scratchpad/m5r/ dir holds all session artifacts (comments, validate script, JSON queries); the working tree positions verified at container restart are re-verifiable in one pass via the resolve-*.json scratch queries (board reads must stay milestone-scoped: M6 filter, batched). Item-ID mapping used this session: #212 item = PVTI…Azg5rWN8 (column now In review); resolve fresh per mutation, verify by content-number, per board protocol.
+
+## HANDOFF 2026-09-12 — M6 SUBMODULE COMPLETE, M7 planned (session record, rule 11)
+
+- **Where we are:** M6 (flysystem_sftpv3) fully worked — 18/18 tickets closed (REST-verified) with the pair gate held per ticket; the pipeline green at every user push. Remaining for M6 CLOSURE: the milestone integration pass (M5-P1 rule) + the §5 exit check — the pass NOT yet run.
+- **Planning updates (yours to commit):** plan-m6.md §2 rewritten as the live execution status + NEW §6 as-built record (every deviation: the two generic driver surfaces B1/B2 + the Core hook/factory consumption; the max_tries mapping; the flat-form shape + completed schema fragment; the CI smoke fixes; the root-optional BC ruling with the README section; sftp has no prefix key — root carries the per-class prefix; the mid-work ordering correction 301-before-300; the gh login restoration after container re-creation). plan-m7.md drafted (the 20 open milestone-12 tickets grouped: Section-A pins, connection-test pair, Section-B disposition, D12 matrix, M1–M6/L1–L4 split pairs, benchmarks as probes not legs); its §2 flags the #201/#202 vs settings-live-lesson conflict for a re-scope ruling. AGENTS.md "current milestone" pointer updated (M4 → M7).
+- **User decisions on record (do not re-ask):** BC principle "upgrade without reconfiguration unless absolutely necessary" (root stays optional; README carries the deltas); the connection-test/contract-violation pair gates the Section-B pass; #72 (D12) runs LAST among code-facing tickets; #277/#278 are probes, not legs.
+- **Parked/lied-none:** none this session; every ticket carries its findings; the board rate-limit handoff (user managed the cards mid-window; REST verified issue states).
+- **Failure type:** prior entries cover the session's slips (the degradável docblock one-word English slip fixed + corrected on #218; the stale-item-ID board mixup caught by the user and corrected; the php Minor phpcs line-105 split after the fact per user's local run).
+- **Category:** other (session record)
