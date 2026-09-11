@@ -19,6 +19,7 @@ module:
   file: 0
   filter: 0
   flysystem: 0
+  flysystem_asyncaws: 0
   flysystem_aws: 0
   help: 0
   image: 0
